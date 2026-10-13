@@ -1,0 +1,22 @@
+{
+  "name": "shard-framework",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Next.js-like modern TypeScript framework for Discord Bots",
+  "packageManager": "pnpm@12.3.4",
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "turbo": "^2.4.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

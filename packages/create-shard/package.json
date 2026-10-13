@@ -1,0 +1,32 @@
+{
+  "name": "create-shard",
+  "version": "0.1.0",
+  "description": "Scaffolding tool for new shard Discord bot projects",
+  "type": "module",
+  "bin": {
+    "create-shard": "./bin/create-shard.js"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@shardjs/cli": "workspace:*",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3"
+  }
+}

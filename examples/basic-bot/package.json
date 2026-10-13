@@ -1,0 +1,21 @@
+{
+  "name": "basic-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "shard dev",
+    "build": "shard build",
+    "start": "shard start",
+    "deploy": "shard deploy"
+  },
+  "dependencies": {
+    "@shardjs/api": "workspace:*",
+    "@shardjs/cli": "workspace:*",
+    "@shardjs/core": "workspace:*",
+    "@shardjs/plugin-drizzle": "workspace:*",
+    "discord-api-types": "^0.37.119",
+    "discord.js": "^14.18.0",
+    "zod": "^3.24.2"
+  }
+}
