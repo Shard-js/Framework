@@ -1,12 +1,17 @@
-import { defineMiddleware } from "@shardjs/core";
+import { defineMiddleware, PermissionFlagsBits } from "@shardjs/core";
 
 export default defineMiddleware({
   name: "auth",
   async run(ctx, next) {
-    // Check if interaction has permissions
-    if (ctx.interaction && ctx.interaction.isChatInputCommand()) {
-      const member = ctx.interaction.member;
-      console.log(`[middleware:auth] Checking permissions for ${ctx.interaction.user.tag}`);
+    const i = ctx.interaction;
+    if (i && typeof i.isChatInputCommand === "function" && i.isChatInputCommand()) {
+      if (!i.inGuild() || !i.memberPermissions?.has(PermissionFlagsBits.BanMembers)) {
+        await i.reply({
+          content: "❌ You lack the required permissions to perform this action.",
+          ephemeral: true,
+        });
+        return; // Fail closed: do NOT call next()
+      }
     }
 
     await next();

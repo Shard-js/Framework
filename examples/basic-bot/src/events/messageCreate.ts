@@ -1,13 +1,12 @@
 import { defineEvent } from "@shardjs/core";
-import type { Message } from "discord.js";
 
 export default defineEvent({
   event: "messageCreate",
-  async run({ bot }, message: Message) {
+  async run({ bot }, message) {
     if (message.author.bot) return;
 
     if (message.content === "!ping") {
-      await message.reply(`Pong! Latenz: ${bot.ws.ping}ms`);
+      await message.reply(`Pong! Latency: ${bot.ws.ping}ms`);
     }
   },
 });

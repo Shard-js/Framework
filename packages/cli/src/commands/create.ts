@@ -40,8 +40,6 @@ export async function runCreate(name: string = "my-shard-bot"): Promise<void> {
     dependencies: {
       "@shardjs/core": "^0.1.0",
       "@shardjs/cli": "^0.1.0",
-      "discord.js": "^14.18.0",
-      "discord-api-types": "^0.37.119",
       "zod": "^3.24.2",
     },
     devDependencies: {
@@ -71,8 +69,7 @@ export async function runCreate(name: string = "my-shard-bot"): Promise<void> {
   );
 
   // Write shard.config.ts
-  const shardConfig = `import { defineConfig } from "@shardjs/core";
-import { GatewayIntentBits } from "discord-api-types/v10";
+  const shardConfig = `import { defineConfig, GatewayIntentBits } from "@shardjs/core";
 
 export default defineConfig({
   token: process.env.DISCORD_TOKEN,
@@ -110,7 +107,7 @@ export default defineEvent({
   event: "ready",
   once: true,
   async run(client) {
-    console.log(\`✅ Logged in as \${client.user.tag}!\`);
+    console.log(\`✅ Logged in as \${client.user?.tag}!\`);
   },
 });
 `;

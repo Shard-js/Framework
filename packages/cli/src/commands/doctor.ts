@@ -1,9 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import colors from "picocolors";
-import { REST } from "@discordjs/rest";
-import { Routes } from "discord-api-types/v10";
-import { loadConfig, normalizeIntents } from "@shardjs/core";
+import { RestClient, Endpoints, loadConfig, normalizeIntents } from "@shardjs/core";
 
 export async function runDoctor(): Promise<void> {
   const rootDir = process.cwd();
@@ -57,8 +55,8 @@ export async function runDoctor(): Promise<void> {
 
     // 4. Test Discord REST Connection
     try {
-      const rest = new REST({ version: "10" }).setToken(token);
-      const user: any = await rest.get(Routes.user("@me"));
+      const rest = new RestClient({ token });
+      const user: any = await rest.get(Endpoints.userMe());
       pass(`Discord API Connection successful! Authenticated as: ${user.username}#${user.discriminator || "0"} (ID: ${user.id})`);
     } catch (err: any) {
       fail(`Discord API Authentication failed: ${err.message}`);
