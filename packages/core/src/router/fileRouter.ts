@@ -12,6 +12,10 @@ import type {
   ShardPlugin,
 } from "../types/index.js";
 
+function normalizePath(p: string): string {
+  return path.resolve(p).replace(/\\/g, "/");
+}
+
 export class FileRouter {
   public rootDir: string;
   public srcDir: string;
@@ -92,7 +96,7 @@ export class FileRouter {
           commandDef.filePath = file;
           const key = commandDef.name.toLowerCase();
           this.commands.set(key, commandDef);
-          this.fileDefinitions.set(path.resolve(file), { type: "command", key });
+          this.fileDefinitions.set(normalizePath(file), { type: "command", key });
         }
       } catch (err: any) {
         console.error(
@@ -120,7 +124,7 @@ export class FileRouter {
           const list = this.events.get(eventDef.event) || [];
           list.push(eventDef);
           this.events.set(eventDef.event, list);
-          this.fileDefinitions.set(path.resolve(file), { type: "event", key: eventDef.event });
+          this.fileDefinitions.set(normalizePath(file), { type: "event", key: eventDef.event });
         }
       } catch (err: any) {
         console.error(
@@ -144,7 +148,7 @@ export class FileRouter {
             path.basename(file).replace(/\.(ts|js|mjs)$/, "");
           mwDef.filePath = file;
           this.middlewares.set(name, mwDef);
-          this.fileDefinitions.set(path.resolve(file), { type: "middleware", key: name });
+          this.fileDefinitions.set(normalizePath(file), { type: "middleware", key: name });
         }
       } catch (err: any) {
         console.error(
@@ -166,7 +170,7 @@ export class FileRouter {
           const key = compDef.customId.toString();
           compDef.filePath = file;
           this.components.set(key, compDef);
-          this.fileDefinitions.set(path.resolve(file), { type: "component", key });
+          this.fileDefinitions.set(normalizePath(file), { type: "component", key });
         }
       } catch (err: any) {
         console.error(
@@ -188,7 +192,7 @@ export class FileRouter {
           const key = modalDef.customId.toString();
           modalDef.filePath = file;
           this.modals.set(key, modalDef);
-          this.fileDefinitions.set(path.resolve(file), { type: "modal", key });
+          this.fileDefinitions.set(normalizePath(file), { type: "modal", key });
         }
       } catch (err: any) {
         console.error(
@@ -256,15 +260,15 @@ export class FileRouter {
    * Cleans existing definitions from that specific file to prevent duplicate listeners (Issue #1).
    */
   public async reloadFile(filePath: string): Promise<string | null> {
-    const absPath = path.resolve(filePath);
-    const existing = this.fileDefinitions.get(absPath);
+    const normPath = normalizePath(filePath);
+    const existing = this.fileDefinitions.get(normPath);
 
     if (existing) {
       if (existing.type === "event") {
         const list = this.events.get(existing.key) || [];
         this.events.set(
           existing.key,
-          list.filter((e) => path.resolve(e.filePath || "") !== absPath)
+          list.filter((e) => normalizePath(e.filePath || "") !== normPath)
         );
       } else if (existing.type === "command") {
         this.commands.delete(existing.key);
@@ -275,7 +279,7 @@ export class FileRouter {
       } else if (existing.type === "modal") {
         this.modals.delete(existing.key);
       }
-      this.fileDefinitions.delete(absPath);
+      this.fileDefinitions.delete(normPath);
     }
 
     const normalized = filePath.replace(/\\/g, "/");
