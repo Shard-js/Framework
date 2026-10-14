@@ -2,7 +2,7 @@ import type { ApiRoute, RouteHandler } from "./types.js";
 
 /**
  * Normalizes a file path relative to `src/app/api` to a URL route pattern.
- * e.g., 'guilds/[id]/route.ts' -> '/api/guilds/:id'
+ * e.g., 'guilds/[id]/route.ts' -> '/api/guilds/[id]'
  */
 export function filePathToRoute(relativePath: string, prefix = "/api"): string {
   // Normalize Windows separators
@@ -22,32 +22,63 @@ export function filePathToRoute(relativePath: string, prefix = "/api"): string {
 
 /**
  * Creates regex and param names from route path
- * e.g. /api/guilds/:id -> { pattern: /^\/api\/guilds\/(?<id>[^/]+)\/?$/, paramNames: ['id'] }
+ * Escapes static segments and validates param names (Fixes #14).
  */
 export function routeToMatcher(routePath: string): {
   pattern: RegExp;
   paramNames: string[];
+  catchAll: Set<string>;
 } {
   const paramNames: string[] = [];
+  const catchAll = new Set<string>();
 
-  // Replace Next.js style dynamic segments [id] and [...slug]
-  let regexStr = routePath
-    .replace(/\[\.\.\.([^\]]+)\]/g, (_, param) => {
-      paramNames.push(param);
-      return `(?<${param}>.+)`;
-    })
-    .replace(/\[([^\]]+)\]/g, (_, param) => {
-      paramNames.push(param);
-      return `(?<${param}>[^/]+)`;
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const NAME_RE = /^[A-Za-z_$][\w$]*$/;
+
+  const parts = routePath
+    .split("/")
+    .filter(Boolean)
+    .map((seg) => {
+      const catchAllMatch = seg.match(/^\[\.\.\.(.+)\]$/);
+      const dynMatch = seg.match(/^\[(.+)\]$/);
+      const name = catchAllMatch?.[1] ?? dynMatch?.[1];
+
+      if (name) {
+        if (!NAME_RE.test(name)) {
+          throw new Error(`Invalid param name: "${name}". Param names must be valid identifiers.`);
+        }
+        if (paramNames.includes(name)) {
+          throw new Error(`Invalid param name (duplicate): "${name}" in route "${routePath}".`);
+        }
+        paramNames.push(name);
+
+        if (catchAllMatch) {
+          catchAll.add(name);
+          return `(?<${name}>.+)`;
+        }
+        return `(?<${name}>[^/]+)`;
+      }
+
+      return esc(seg);
     });
 
-  // Ensure leading slash and optional trailing slash
-  if (!regexStr.startsWith("/")) {
-    regexStr = `/${regexStr}`;
-  }
+  const pattern = new RegExp(`^/${parts.join("/")}/?$`);
+  return { pattern, paramNames, catchAll };
+}
 
-  const pattern = new RegExp(`^${regexStr}\\/?$`);
-  return { pattern, paramNames };
+function safeDecode(v: string): string | null {
+  try {
+    return decodeURIComponent(v);
+  } catch {
+    return null;
+  }
+}
+
+export interface MatchResult {
+  route: ApiRoute;
+  handler: RouteHandler;
+  params: Record<string, string>;
+  malformed?: boolean;
 }
 
 export class ApiRouter {
@@ -63,11 +94,12 @@ export class ApiRouter {
     methods: Record<string, RouteHandler>
   ): ApiRoute {
     const routePath = filePathToRoute(filePath, this.prefix);
-    const { pattern, paramNames } = routeToMatcher(routePath);
+    const { pattern, paramNames, catchAll } = routeToMatcher(routePath);
 
     const route: ApiRoute = {
       pattern,
       paramNames,
+      catchAll,
       methods,
       filePath,
       routePath,
@@ -83,14 +115,7 @@ export class ApiRouter {
     this.routes = [];
   }
 
-  public match(
-    pathname: string,
-    method: string
-  ): {
-    route: ApiRoute;
-    handler: RouteHandler;
-    params: Record<string, string>;
-  } | null {
+  public match(pathname: string, method: string): MatchResult | null {
     for (const route of this.routes) {
       const match = route.pattern.exec(pathname);
       if (match) {
@@ -100,7 +125,19 @@ export class ApiRouter {
           if (match.groups) {
             for (const [key, value] of Object.entries(match.groups)) {
               if (value !== undefined) {
-                params[key] = decodeURIComponent(value);
+                const decoded = safeDecode(value);
+                // Malformed percent-encoding returns malformed flag for 400 Bad Request (Fix #12)
+                if (decoded === null) {
+                  return { route, handler, params: {}, malformed: true };
+                }
+
+                // If not catch-all, single segment must not contain slashes (Fix #12: %2F path traversal)
+                const isCatchAll = route.catchAll.has(key);
+                if (!isCatchAll && /[\/\\]/.test(decoded)) {
+                  return null;
+                }
+
+                params[key] = decoded;
               }
             }
           }
