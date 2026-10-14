@@ -25,56 +25,44 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
   const srcDir = path.join(rootDir, "src");
 
   // Collect entry files
-  const entryPoints: string[] = [];
-  function collectEntries(dir: string) {
-    if (!fs.existsSync(dir)) return;
-    for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, item.name);
-      if (item.isDirectory()) {
-        collectEntries(full);
-      } else if (/\.(ts|js|mjs)$/.test(item.name) && !item.name.endsWith(".d.ts")) {
-        entryPoints.push(full);
-      }
-    }
-  }
-
-  collectEntries(srcDir);
+  const router = new FileRouter(rootDir);
+  const entryPoints = router.getFilesRecursively(srcDir);
 
   const configFile = path.join(rootDir, "shard.config.ts");
   if (fs.existsSync(configFile)) {
     entryPoints.push(configFile);
   }
 
-  // Compile with esbuild
+  // Compile with esbuild (sourcemaps disabled by default in production, Issue #15)
   await esbuild.build({
     entryPoints,
     outdir: outDir,
     format: "esm",
     target: "node20",
     platform: "node",
-    sourcemap: options.sourcemap ?? true,
+    sourcemap: options.sourcemap ?? false,
     bundle: false, // keep file structure intact for file routing
   });
 
-  // Generate production runner entrypoint
+  // Generate production runner entrypoint with correct rootDir resolution (Issue #4)
   const prodRunnerContent = `import { loadConfig, createBot } from "@shardjs/core";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, "..");
+// Runner is located at <project>/.shard/dist/runner.js -> rootDir is ../..
+const rootDir = path.resolve(__dirname, "../..");
 
 const { config } = await loadConfig(rootDir);
-const bot = createBot(config, __dirname);
+const bot = createBot(config, rootDir);
 
 await bot.start();
-console.log("🚀 [shard] Production bot running.");
+console.log("[shard] Production bot running.");
 `;
 
   fs.writeFileSync(path.join(outDir, "runner.js"), prodRunnerContent, "utf-8");
 
   // Router summary
-  const router = new FileRouter(rootDir);
   await router.loadAll();
 
   const elapsed = (performance.now() - startTime).toFixed(0);
