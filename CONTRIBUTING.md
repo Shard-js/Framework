@@ -17,7 +17,7 @@ Thank you for your interest in contributing to Shard.js! This document outlines 
 
 ### Prerequisites
 
-- **Node.js**: >= 18.0.0 (LTS 20 or 22 recommended)
+- **Node.js**: >= 20.0.0 (LTS 20 or 22 recommended)
 - **pnpm**: >= 9 (or managed via Corepack)
 
 ```bash
