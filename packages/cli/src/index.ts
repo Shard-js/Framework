@@ -112,7 +112,7 @@ export async function runCli(argv = process.argv): Promise<void> {
   }
 
   cli.help();
-  cli.version("0.1.0");
+  cli.version("0.2.0");
 
   try {
     cli.parse(argv, { run: false });

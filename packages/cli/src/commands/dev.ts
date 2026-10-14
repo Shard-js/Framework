@@ -10,7 +10,7 @@ export interface DevCommandOptions {
 
 export async function runDev(options: DevCommandOptions = {}): Promise<void> {
   const rootDir = process.cwd();
-  console.log(colors.cyan(colors.bold("\n💎 shard dev (v0.1.0) - Starting development server...\n")));
+  console.log(colors.cyan(colors.bold("\n💎 shard dev (v0.2.0) - Starting development server...\n")));
 
   const { config, configPath } = await loadConfig(rootDir);
 

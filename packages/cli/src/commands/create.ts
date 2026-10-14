@@ -38,8 +38,8 @@ export async function runCreate(name: string = "my-shard-bot"): Promise<void> {
       doctor: "shard doctor",
     },
     dependencies: {
-      "@shardjs/core": "^0.1.0",
-      "@shardjs/cli": "^0.1.0",
+      "@shardjs/core": "^0.2.0",
+      "@shardjs/cli": "^0.2.0",
       "zod": "^3.24.2",
     },
     devDependencies: {
