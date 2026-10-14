@@ -1,14 +1,15 @@
-import type {
-  Client,
-  ClientOptions,
-  ChatInputCommandInteraction,
-  AutocompleteInteraction,
-  GatewayIntentBits,
-  CommandInteractionOptionResolver,
-  PermissionResolvable,
-} from "discord.js";
 import type { ZodSchema } from "zod";
 import type { ApiServerConfig, RouteHandler } from "@shardjs/api";
+import type { Client, ClientOptions } from "../discord/client/Client.js";
+import type {
+  CommandInteraction,
+  AutocompleteInteraction,
+  ComponentInteraction,
+  ModalInteraction,
+} from "../discord/interactions/index.js";
+import type { GatewayIntentBits } from "../discord/types/gateway.js";
+import type { PermissionResolvable } from "../discord/types/permissions.js";
+import type { GatewayEventMap } from "../discord/types/events.js";
 
 /**
  * Global Shard context interface, open for module augmentation by plugins.
@@ -32,8 +33,8 @@ export interface ShardContext {
  * Context passed to command run handlers
  */
 export interface CommandContext<TOptions = any> extends ShardContext {
-  interaction: ChatInputCommandInteraction;
-  options: ChatInputCommandInteraction["options"];
+  interaction: CommandInteraction;
+  options: CommandInteraction["options"];
   parsedOptions?: TOptions;
 }
 
@@ -44,7 +45,23 @@ export interface AutocompleteContext extends ShardContext {
   interaction: AutocompleteInteraction;
 }
 
+/**
+ * Context passed to component (button, select) handlers
+ */
+export interface ComponentContext extends ShardContext {
+  interaction: ComponentInteraction;
+}
+
+/**
+ * Context passed to modal submit handlers
+ */
+export interface ModalContext extends ShardContext {
+  interaction: ModalInteraction;
+}
+
 export type CommandOptionType =
+  | "Subcommand"
+  | "SubcommandGroup"
   | "String"
   | "Integer"
   | "Number"
@@ -67,6 +84,7 @@ export interface CommandOptionDefinition {
   required?: boolean;
   choices?: CommandOptionChoice[];
   autocomplete?: boolean;
+  options?: readonly CommandOptionDefinition[] | CommandOptionDefinition[];
 }
 
 export interface CommandDefinition<TOptions = any> {
@@ -82,15 +100,30 @@ export interface CommandDefinition<TOptions = any> {
   filePath?: string;
 }
 
+export interface ComponentDefinition {
+  customId: string | RegExp;
+  run: (ctx: ComponentContext) => Promise<any> | any;
+  filePath?: string;
+}
+
+export interface ModalDefinition {
+  customId: string | RegExp;
+  run: (ctx: ModalContext) => Promise<any> | any;
+  filePath?: string;
+}
+
 export interface EventContext extends ShardContext {
   event: string;
   args: any[];
 }
 
-export interface EventDefinition<K = string> {
+export interface EventDefinition<K extends keyof GatewayEventMap | string = string> {
   event: K;
   once?: boolean;
-  run: (...args: any[]) => Promise<any> | any;
+  run: (
+    ctx: K extends "ready" ? Client : EventContext,
+    ...args: K extends keyof GatewayEventMap ? GatewayEventMap[K] : any[]
+  ) => Promise<any> | any;
   filePath?: string;
 }
 
@@ -129,3 +162,4 @@ export interface ShardConfig {
 }
 
 export type { RouteHandler } from "@shardjs/api";
+export type { Client, ClientOptions } from "../discord/client/Client.js";

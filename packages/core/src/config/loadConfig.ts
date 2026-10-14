@@ -1,9 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import dotenv from "dotenv";
 import colors from "picocolors";
-import { GatewayIntentBits } from "discord.js";
+import { GatewayIntentBits } from "../discord/types/gateway.js";
 import { importModule } from "../utils/moduleLoader.js";
 import type { ShardConfig } from "../types/index.js";
 
@@ -55,7 +54,7 @@ export function findConfigFile(rootDir: string = process.cwd()): string | null {
  */
 export function normalizeIntents(
   intents?: (GatewayIntentBits | number | keyof typeof GatewayIntentBits)[]
-): GatewayIntentBits[] {
+): number[] {
   if (!intents || intents.length === 0) {
     return [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages];
   }

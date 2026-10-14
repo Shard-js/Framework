@@ -11,5 +11,8 @@ export * from "./middleware/runner.js";
 export * from "./bot/createBot.js";
 export * from "./deploy/deployCommands.js";
 
+// Discord Standalone Engine
+export * from "./discord/index.js";
+
 // Re-export HTTP route primitive from @shardjs/api
 export { defineRoute } from "@shardjs/api";

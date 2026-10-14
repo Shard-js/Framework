@@ -1,140 +1,87 @@
-import { REST } from "@discordjs/rest";
-import { SlashCommandBuilder } from "@discordjs/builders";
-import { PermissionsBitField } from "discord.js";
-import {
-  Routes,
-  ApplicationCommandOptionType,
-  type RESTPostAPIApplicationCommandsJSONBody,
-} from "discord-api-types/v10";
 import colors from "picocolors";
+import { RestClient } from "../discord/rest/RestClient.js";
+import { Endpoints } from "../discord/rest/Endpoints.js";
+import { PermissionsBitField } from "../discord/types/permissions.js";
+import { ApplicationCommandOptionType } from "../discord/types/interactions.js";
 import type {
   CommandDefinition,
   CommandOptionDefinition,
+  CommandOptionType,
   ShardConfig,
 } from "../types/index.js";
 
+const OPTION_TYPE_MAP: Record<CommandOptionType, number> = {
+  Subcommand: ApplicationCommandOptionType.Subcommand,
+  SubcommandGroup: ApplicationCommandOptionType.SubcommandGroup,
+  String: ApplicationCommandOptionType.String,
+  Integer: ApplicationCommandOptionType.Integer,
+  Number: ApplicationCommandOptionType.Number,
+  Boolean: ApplicationCommandOptionType.Boolean,
+  User: ApplicationCommandOptionType.User,
+  Channel: ApplicationCommandOptionType.Channel,
+  Role: ApplicationCommandOptionType.Role,
+  Mentionable: ApplicationCommandOptionType.Mentionable,
+  Attachment: ApplicationCommandOptionType.Attachment,
+};
+
 /**
- * Transforms a CommandDefinition to Discord REST API JSON format
+ * Transforms a CommandDefinition to Discord REST API JSON format (API v10)
+ * Supports Subcommands and SubcommandGroups recursively.
  */
-export function commandToDiscordJson(
-  cmd: CommandDefinition
-): RESTPostAPIApplicationCommandsJSONBody {
-  const builder = new SlashCommandBuilder()
-    .setName(cmd.name)
-    .setDescription(cmd.description);
+export function commandToDiscordJson(cmd: CommandDefinition): any {
+  const json: any = {
+    name: cmd.name,
+    description: cmd.description,
+  };
 
   if (cmd.guildOnly !== undefined) {
-    builder.setDMPermission(!cmd.guildOnly);
+    json.dm_permission = !cmd.guildOnly;
   }
   if (cmd.dmPermission !== undefined) {
-    builder.setDMPermission(cmd.dmPermission);
+    json.dm_permission = cmd.dmPermission;
   }
   if (cmd.defaultMemberPermissions !== undefined) {
-    builder.setDefaultMemberPermissions(
-      PermissionsBitField.resolve(cmd.defaultMemberPermissions)
-    );
+    json.default_member_permissions = PermissionsBitField.resolve(
+      cmd.defaultMemberPermissions
+    ).toString();
   }
 
-  if (cmd.options) {
-    for (const opt of cmd.options) {
-      addOptionToBuilder(builder, opt);
+  if (cmd.options && cmd.options.length > 0) {
+    json.options = cmd.options.map((opt) => transformOption(opt));
+  }
+
+  return json;
+}
+
+function transformOption(opt: CommandOptionDefinition): any {
+  const typeInt = OPTION_TYPE_MAP[opt.type] ?? ApplicationCommandOptionType.String;
+  const json: any = {
+    type: typeInt,
+    name: opt.name,
+    description: opt.description,
+  };
+
+  // Subcommands/SubcommandGroups do not have required/autocomplete
+  if (
+    opt.type !== "Subcommand" &&
+    opt.type !== "SubcommandGroup"
+  ) {
+    if (opt.required !== undefined) json.required = Boolean(opt.required);
+    if (opt.autocomplete !== undefined) json.autocomplete = Boolean(opt.autocomplete);
+    if (opt.choices && opt.choices.length > 0) {
+      json.choices = opt.choices.map((c) => ({
+        name: c.name,
+        value: c.value,
+      }));
     }
   }
 
-  return builder.toJSON() as any;
-}
-
-function addOptionToBuilder(
-  builder: SlashCommandBuilder,
-  opt: CommandOptionDefinition
-): void {
-  switch (opt.type) {
-    case "String":
-      builder.addStringOption((o) => {
-        o.setName(opt.name)
-          .setDescription(opt.description)
-          .setRequired(Boolean(opt.required));
-        if (opt.autocomplete) o.setAutocomplete(true);
-        if (opt.choices) {
-          for (const c of opt.choices) {
-            o.addChoices({ name: c.name, value: String(c.value) });
-          }
-        }
-        return o;
-      });
-      break;
-    case "Integer":
-      builder.addIntegerOption((o) => {
-        o.setName(opt.name)
-          .setDescription(opt.description)
-          .setRequired(Boolean(opt.required));
-        if (opt.autocomplete) o.setAutocomplete(true);
-        if (opt.choices) {
-          for (const c of opt.choices) {
-            o.addChoices({ name: c.name, value: Number(c.value) });
-          }
-        }
-        return o;
-      });
-      break;
-    case "Number":
-      builder.addNumberOption((o) => {
-        o.setName(opt.name)
-          .setDescription(opt.description)
-          .setRequired(Boolean(opt.required));
-        if (opt.autocomplete) o.setAutocomplete(true);
-        return o;
-      });
-      break;
-    case "Boolean":
-      builder.addBooleanOption((o) =>
-        o
-          .setName(opt.name)
-          .setDescription(opt.description)
-          .setRequired(Boolean(opt.required))
-      );
-      break;
-    case "User":
-      builder.addUserOption((o) =>
-        o
-          .setName(opt.name)
-          .setDescription(opt.description)
-          .setRequired(Boolean(opt.required))
-      );
-      break;
-    case "Channel":
-      builder.addChannelOption((o) =>
-        o
-          .setName(opt.name)
-          .setDescription(opt.description)
-          .setRequired(Boolean(opt.required))
-      );
-      break;
-    case "Role":
-      builder.addRoleOption((o) =>
-        o
-          .setName(opt.name)
-          .setDescription(opt.description)
-          .setRequired(Boolean(opt.required))
-      );
-      break;
-    case "Mentionable":
-      builder.addMentionableOption((o) =>
-        o
-          .setName(opt.name)
-          .setDescription(opt.description)
-          .setRequired(Boolean(opt.required))
-      );
-      break;
-    case "Attachment":
-      builder.addAttachmentOption((o) =>
-        o
-          .setName(opt.name)
-          .setDescription(opt.description)
-          .setRequired(Boolean(opt.required))
-      );
-      break;
+  // Recursive options for Subcommands and SubcommandGroups (Issue #2)
+  if (opt.options && opt.options.length > 0) {
+    json.options = opt.options.map((subOpt) => transformOption(subOpt));
   }
+
+  return json;
 }
 
 export interface DeployOptions {
@@ -153,10 +100,10 @@ export async function deployCommands(
     throw new Error("No DISCORD_TOKEN provided for deploying commands.");
   }
 
-  const rest = new REST({ version: "10" }).setToken(token);
+  const rest = new RestClient({ token });
 
   // Retrieve Bot Client ID from Discord REST /users/@me
-  const currentUser: any = await rest.get(Routes.user("@me"));
+  const currentUser: any = await rest.get(Endpoints.userMe());
   const clientId = currentUser.id;
 
   const payload = options.clean
@@ -169,7 +116,7 @@ export async function deployCommands(
     console.log(
       colors.cyan(`🚀 Deploying ${payload.length} commands to Guild ID: ${targetGuild}...`)
     );
-    await rest.put(Routes.applicationGuildCommands(clientId, targetGuild), {
+    await rest.put(Endpoints.applicationGuildCommands(clientId, targetGuild), {
       body: payload,
     });
     return { count: payload.length, target: `Guild (${targetGuild})` };
@@ -177,7 +124,7 @@ export async function deployCommands(
     console.log(
       colors.cyan(`🌍 Deploying ${payload.length} commands globally...`)
     );
-    await rest.put(Routes.applicationCommands(clientId), {
+    await rest.put(Endpoints.applicationCommands(clientId), {
       body: payload,
     });
     return { count: payload.length, target: "Global" };
