@@ -7,12 +7,21 @@ import type {
   DiscordUser,
 } from "./entities.js";
 import type { DiscordInteraction } from "./interactions.js";
+import type { Client } from "../client/Client.js";
+
+export interface ClientMessage extends DiscordMessage {
+  reply: (options: string | { content?: string; embeds?: any[]; components?: any[]; message_reference?: any }) => Promise<any>;
+  channel: {
+    id: string;
+    send: (options: string | { content?: string; embeds?: any[]; components?: any[] }) => Promise<any>;
+  };
+}
 
 /**
  * Mapping of Discord Gateway dispatch events to their payload types.
  */
 export interface GatewayEventMap {
-  ready: [data: { v: number; user: DiscordUser; guilds: any[]; session_id: string }];
+  ready: [client: Client];
   resumed: [];
   channelCreate: [channel: DiscordChannel];
   channelUpdate: [channel: DiscordChannel];
@@ -27,7 +36,7 @@ export interface GatewayEventMap {
   guildRoleUpdate: [data: { guild_id: string; role: DiscordRole }];
   guildRoleDelete: [data: { guild_id: string; role_id: string }];
   interactionCreate: [interaction: DiscordInteraction];
-  messageCreate: [message: DiscordMessage];
+  messageCreate: [message: ClientMessage];
   messageUpdate: [message: Partial<DiscordMessage> & { id: string; channel_id: string }];
   messageDelete: [data: { id: string; channel_id: string; guild_id?: string }];
   messageDeleteBulk: [data: { ids: string[]; channel_id: string; guild_id?: string }];
@@ -41,3 +50,4 @@ export interface GatewayEventMap {
 }
 
 export type GatewayEventName = keyof GatewayEventMap | (string & {});
+

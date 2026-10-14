@@ -7,7 +7,9 @@
     "dev": "shard dev",
     "build": "shard build",
     "start": "shard start",
-    "deploy": "shard deploy"
+    "deploy": "shard deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@shardjs/api": "workspace:*",

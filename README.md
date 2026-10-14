@@ -1,29 +1,30 @@
-# 💎 shard
+# Shard.js
 
-> **The Next.js for Discord Bots** — A modern, type-safe TypeScript framework for building scalable Discord bots with file-based routing, built-in REST API, middleware, plugins, and zero-downtime hot reloading.
-
----
-
-## 🚀 Vision & Key Features
-
-* **⚡ Next.js Developer Experience:** Zero boilerplate file-based routing for Slash Commands, Gateway Events, and HTTP Route Handlers.
-* **🌐 Built-in Web REST API:** Built-in Route Handlers (`src/app/api/**/route.ts`) powered by Web Standard `Request` and `Response`.
-* **🔄 Zero-Gateway-Drop Hot Reloading:** Hot module replacement for commands and events that keeps the Discord WebSocket connection alive without hitting Discord identify rate limits.
-* **🛡️ End-to-End Type Safety:** Deep TypeScript integration using `discord-api-types/v10` and Zod environment validation.
-* **🧅 Onion Middleware Pipeline:** Composable middlewares (`defineMiddleware`) for permissions, rate-limiting, and cooldowns.
-* **🔌 Extensible Plugin System:** Add database connections (Drizzle, Prisma), OAuth2 dashboards, or custom CLI commands seamlessly.
-* **🛠️ Dedicated CLI:** Run everything with `shard dev`, `shard build`, `shard start`, `shard deploy`, and `shard doctor`.
+> **The Next.js for Discord Bots** — A modern, fully standalone TypeScript framework for building scalable Discord bots with file-based routing, built-in REST API, middleware, plugins, and zero-downtime hot reloading. Built directly on the official Discord API v10 with zero runtime dependency on `discord.js`.
 
 ---
 
-## 📦 Monorepo Architecture
+## Key Features
+
+- **Standalone Discord Engine**: Built directly on Discord API v10 with native Gateway (sharding, heartbeat jitter, ACK detection, session resume) and REST client (bucket-based rate limiting, global 429 backoff, 5xx retry).
+- **Next.js Developer Experience**: Zero-boilerplate file-based routing for Slash Commands, Gateway Events, Component handlers, and HTTP Route Handlers.
+- **Built-in Web REST API**: Route Handlers (`src/app/api/**/route.ts`) powered by Web Standard `Request` and `Response` with parameter validation and path-traversal protection.
+- **Zero-Gateway-Drop Hot Reloading**: Hot module replacement for commands and events that keeps the Discord Gateway connection alive without hitting Discord identify rate limits.
+- **End-to-End Type Safety**: Pure TypeScript architecture with native Discord entities, fluent builders (`EmbedBuilder`, `ActionRowBuilder`, `ButtonBuilder`, `ModalBuilder`), and bitfield permissions (`PermissionsBitField`).
+- **Onion Middleware Pipeline**: Composable middlewares (`defineMiddleware`) with fail-closed security for authentication and rate-limiting.
+- **Extensible Plugin System**: Add database connections (Drizzle ORM), dashboards, or custom CLI commands seamlessly.
+- **Dedicated CLI & Docker Tooling**: Manage your application with `shard dev`, `shard build`, `shard start`, `shard deploy`, `shard doctor`, and hardened `shard docker:build`.
+
+---
+
+## Monorepo Architecture
 
 ```
 shard-framework/
 ├── packages/
-│   ├── core/            # @shardjs/core: Runtime abstractions, bot engine, router
+│   ├── core/            # @shardjs/core: Standalone Discord protocol engine & bot runtime
 │   ├── api/             # @shardjs/api: Built-in HTTP Route Handler web server
-│   ├── cli/             # @shardjs/cli: The `shard` command line binary
+│   ├── cli/             # @shardjs/cli: The `shard` command line tool
 │   ├── create-shard/    # create-shard: Interactive project scaffolding
 │   └── plugin-drizzle/  # @shardjs/plugin-drizzle: Official Drizzle ORM plugin
 ├── examples/
@@ -34,7 +35,7 @@ shard-framework/
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### 1. Create a New Bot
 
@@ -42,7 +43,7 @@ shard-framework/
 # Using create-shard
 npx create-shard my-bot
 
-# Or using the shard CLI directly
+# Or using the shard CLI
 shard create my-bot
 cd my-bot
 ```
@@ -53,8 +54,7 @@ Edit `shard.config.ts` and set your `DISCORD_TOKEN` in `.env`:
 
 ```ts
 // shard.config.ts
-import { defineConfig } from "@shardjs/core";
-import { GatewayIntentBits } from "discord-api-types/v10";
+import { defineConfig, GatewayIntentBits } from "@shardjs/core";
 
 export default defineConfig({
   token: process.env.DISCORD_TOKEN,
@@ -76,21 +76,25 @@ export default defineConfig({
 shard dev
 ```
 
-Your Discord bot is online, listening for gateway events, and your REST API server is live on `http://localhost:3000/api`!
+Your Discord bot is online, listening for gateway events, and your REST API server is live on `http://127.0.0.1:3000/api`!
 
 ---
 
-## 📁 File-Based Routing Conventions
+## File-Based Routing Conventions
 
 ```
 src/
-├── commands/            # Slash Commands & Context Menus
+├── commands/            # Slash Commands & Subcommands
 │   ├── ping.ts          # /ping
 │   └── moderation/
 │       └── ban.ts       # /ban (with permission flags & options)
 ├── events/              # Discord Gateway Events
 │   ├── ready.ts         # 'ready' event
 │   └── messageCreate.ts # 'messageCreate' event
+├── components/          # Buttons and Select Menus
+│   └── confirm.ts       # customId handler
+├── modals/              # Modal Submissions
+│   └── feedback.ts      # modal customId handler
 ├── app/api/             # Web API Route Handlers
 │   ├── health/
 │   │   └── route.ts     # GET /api/health
@@ -98,14 +102,14 @@ src/
 │       └── [id]/
 │           └── route.ts # GET, POST /api/guilds/:id
 ├── middleware/          # Composable Middlewares
-│   └── auth.ts          # Global and route-level guards
+│   └── auth.ts          # Route & command guards
 └── plugins/             # Local bot plugins
     └── database.ts
 ```
 
 ---
 
-## 📝 Code Examples
+## Code Examples
 
 ### 1. Slash Command (`src/commands/ping.ts`)
 
@@ -117,7 +121,7 @@ export default defineCommand({
   description: "Check bot latency",
   async run({ interaction, bot }) {
     await interaction.reply({
-      content: `🏓 Pong! WebSocket Ping: **${bot.ws.ping}ms**`,
+      content: `Pong! WebSocket Ping: **${bot.ws.ping}ms**`,
     });
   },
 });
@@ -131,8 +135,8 @@ import { defineEvent } from "@shardjs/core";
 export default defineEvent({
   event: "ready",
   once: true,
-  async run(client) {
-    console.log(`🤖 Logged in as ${client.user.tag}`);
+  run({ bot }) {
+    console.log(`Logged in as ${bot.user?.tag || "Unknown"}!`);
   },
 });
 ```
@@ -151,64 +155,50 @@ export const GET = defineRoute(async ({ params, bot }) => {
   return Response.json({
     id: guild.id,
     name: guild.name,
-    members: guild.memberCount,
+    memberCount: guild.approximate_member_count,
   });
-});
-
-export const POST = defineRoute(async ({ request, params, bot }) => {
-  const { message, channelId } = await request.json();
-  const channel = bot.channels.cache.get(channelId);
-  if (channel?.isTextBased()) {
-    await channel.send(message);
-    return Response.json({ success: true });
-  }
-  return Response.json({ error: "Invalid channel" }, { status: 400 });
 });
 ```
 
 ### 4. Middleware (`src/middleware/auth.ts`)
 
 ```ts
-import { defineMiddleware } from "@shardjs/core";
+import { defineMiddleware, PermissionsBitField, PermissionFlags } from "@shardjs/core";
 
 export default defineMiddleware({
   name: "auth",
   async run(ctx, next) {
-    if (ctx.interaction?.isChatInputCommand()) {
-      console.log(`[auth] Guarding command /${ctx.interaction.commandName}`);
+    if (ctx.interaction) {
+      const perms = new PermissionsBitField(ctx.interaction.member?.permissions || "0");
+      if (!perms.has(PermissionFlags.BanMembers)) {
+        await ctx.interaction.reply({
+          content: "You do not have permission to execute this command.",
+          ephemeral: true,
+        });
+        return;
+      }
     }
     await next();
   },
 });
 ```
 
-### 5. Plugin (`packages/plugin-drizzle`)
+### 5. Drizzle ORM Plugin
 
 ```ts
-import { definePlugin } from "@shardjs/core";
+import { drizzlePlugin } from "@shardjs/plugin-drizzle";
+import { db } from "./db/client.js";
 
-declare module "@shardjs/core" {
-  interface ShardContext {
-    db: any;
-  }
-}
-
-export default definePlugin({
-  name: "drizzle",
-  cli(cmd) {
-    cmd.command("db:migrate", "Run migrations").action(async () => {
-      console.log("Migrating database...");
-    });
-  },
-  async setup({ inject }) {
-    inject("db", myDatabaseInstance);
-  },
+export default defineConfig({
+  plugins: [
+    drizzlePlugin({ client: db }),
+  ],
 });
 ```
 
 ---
 
-## 🛠️ CLI Reference
+## CLI Reference
 
 | Command | Flags | Description |
 | :--- | :--- | :--- |
@@ -218,11 +208,19 @@ export default definePlugin({
 | `shard start` | `-p, --port <port>` | Runs compiled bot in production mode |
 | `shard deploy` | `-g, --guild <id>`, `--global`, `--clean` | Deploys Slash Commands to Discord REST API |
 | `shard doctor` | | Health check for tokens, intents, node version & files |
-| `shard docker:build` | `[tag]` | Builds optimized multi-stage Docker container |
+| `shard docker:build` | `[tag]` | Builds optimized, hardened multi-stage Docker container |
 | `shard docker:run` | `[tag]`, `-p, --port` | Runs container with `.env` file mounted |
 
 ---
 
-## 📜 License
+## Documentation
+
+- [Architecture Guide](ARCHITECTURE.md) — Comprehensive technical guide to Gateway, REST, routing, and security.
+- [Migration Guide](MIGRATION.md) — Step-by-step guide for migrating from `discord.js`.
+- [Contributing](CONTRIBUTING.md) — Development setup, monorepo workflow, and contribution guidelines.
+
+---
+
+## License
 
 MIT © shard contributors

@@ -13,6 +13,7 @@ import type {
   ModalContext,
   MiddlewareHandler,
   EventDefinition,
+  EventContext,
 } from "../types/index.js";
 import { CommandInteraction } from "../discord/interactions/CommandInteraction.js";
 import { AutocompleteInteraction } from "../discord/interactions/AutocompleteInteraction.js";
@@ -172,47 +173,52 @@ function setupEventProxy(
   });
 
   // Dynamic dispatch for all Discord Gateway events (Issue #2 & #16)
-  // Use a wildcard listener to handle ANY Gateway event without hardcoding
-  client.shardManager.on("dispatch", async (eventName: string, data: any) => {
-    const camelEvent = toCamelCase(eventName);
-    const handlers = [
-      ...(router.events.get(camelEvent) || []),
-      ...(router.events.get(eventName) || []),
-    ];
+  // Hook client.emit to dispatch enriched events (ready, messageCreate, guildCreate, etc.)
+  // and dynamically routed events to router.events without duplicate listener leaks.
+  const originalEmit = client.emit.bind(client);
+  client.emit = function (eventName: string | symbol, ...args: any[]): boolean {
+    if (typeof eventName === "string" && eventName !== "interactionCreate") {
+      const camelEvent = toCamelCase(eventName);
+      const handlers = [
+        ...(router.events.get(camelEvent) || []),
+        ...(router.events.get(eventName) || []),
+      ];
 
-    if (handlers.length === 0) return;
+      if (handlers.length > 0) {
+        const uniqueHandlers = Array.from(new Set(handlers));
+        const ctx: EventContext = {
+          ...context,
+          bot: client,
+          event: camelEvent,
+          args,
+        };
 
-    // Filter out duplicates if any
-    const uniqueHandlers = Array.from(new Set(handlers));
+        for (const handler of uniqueHandlers) {
+          try {
+            const res = handler.run(ctx as any, ...args);
+            if (res instanceof Promise) {
+              res.catch((err) => {
+                console.error(colors.red(`[shard] Error in event '${camelEvent}':`), err);
+              });
+            }
 
-    for (const handler of uniqueHandlers) {
-      try {
-        if (camelEvent === "ready" || eventName === "READY") {
-          await handler.run(client as any, data);
-        } else {
-          await handler.run(
-            {
-              ...context,
-              event: camelEvent,
-              args: [data],
-            } as any,
-            data
-          );
+            // Support once: true (Issue #16)
+            if (handler.once) {
+              removeEventHandler(router, camelEvent, handler);
+              removeEventHandler(router, eventName, handler);
+            }
+          } catch (err: any) {
+            console.error(
+              colors.red(`[shard] Error in event '${camelEvent}':`),
+              err
+            );
+          }
         }
-
-        // Support once: true (Issue #16)
-        if (handler.once) {
-          removeEventHandler(router, camelEvent, handler);
-          removeEventHandler(router, eventName, handler);
-        }
-      } catch (err: any) {
-        console.error(
-          colors.red(`[shard] Error in event '${camelEvent}':`),
-          err
-        );
       }
     }
-  });
+
+    return originalEmit(eventName, ...args);
+  };
 }
 
 function removeEventHandler(router: FileRouter, event: string, handler: EventDefinition): void {
