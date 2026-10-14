@@ -2,7 +2,6 @@ import { spawn } from "node:child_process";
 import colors from "picocolors";
 import type { ShardPlugin } from "@shardjs/core";
 
-// Module augmentation: adds 'db' to ShardContext across the framework
 declare module "@shardjs/core" {
   interface ShardContext {
     db?: any;
@@ -45,20 +44,6 @@ export function executeDrizzleKit(action: "migrate" | "push", configPath?: strin
   });
 }
 
-/**
- * Official Drizzle ORM plugin for shard framework.
- * Automatically injects `ctx.db` into commands, events and HTTP route handlers.
- *
- * @example
- * ```ts
- * import { drizzlePlugin } from "@shardjs/plugin-drizzle";
- * import { db } from "./db";
- *
- * export default defineConfig({
- *   plugins: [drizzlePlugin({ client: db })],
- * });
- * ```
- */
 export function drizzlePlugin(options: DrizzlePluginOptions = {}): ShardPlugin {
   return {
     name: "drizzle",
@@ -109,7 +94,6 @@ export function drizzlePlugin(options: DrizzlePluginOptions = {}): ShardPlugin {
     },
 
     async teardown() {
-      // Teardown connections if client supports close/end
       if (options.client) {
         if (typeof options.client.end === "function") {
           await options.client.end();

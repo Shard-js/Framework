@@ -1,14 +1,8 @@
 import type { ApiRoute, RouteHandler } from "./types.js";
 
-/**
- * Normalizes a file path relative to `src/app/api` to a URL route pattern.
- * e.g., 'guilds/[id]/route.ts' -> '/api/guilds/[id]'
- */
 export function filePathToRoute(relativePath: string, prefix = "/api"): string {
-  // Normalize Windows separators
   let normalized = relativePath.replace(/\\/g, "/");
 
-  // Remove leading slashes and route.ts/js
   normalized = normalized.replace(/^[/]+/, "");
   normalized = normalized.replace(/\/?route\.(ts|js|mjs)$/, "");
 
@@ -20,10 +14,6 @@ export function filePathToRoute(relativePath: string, prefix = "/api"): string {
   return `${cleanPrefix}/${normalized}`;
 }
 
-/**
- * Creates regex and param names from route path
- * Escapes static segments and validates param names (Fixes #14).
- */
 export function routeToMatcher(routePath: string): {
   pattern: RegExp;
   paramNames: string[];
@@ -107,7 +97,6 @@ export class ApiRouter {
       routePath,
     };
 
-    // Remove existing if registered
     this.routes = this.routes.filter((r) => r.routePath !== routePath);
     this.routes.push(route);
     return route;
@@ -133,13 +122,11 @@ export class ApiRouter {
           for (const [key, value] of Object.entries(match.groups)) {
             if (value !== undefined) {
               const decoded = safeDecode(value);
-              // Malformed percent-encoding returns malformed flag for 400 Bad Request (Fix #12)
               if (decoded === null) {
                 isMalformed = true;
                 break;
               }
 
-              // If not catch-all, single segment must not contain slashes (Fix #12: %2F path traversal)
               const isCatchAll = route.catchAll.has(key);
               if (!isCatchAll && /[\/\\]/.test(decoded)) {
                 isPathTraversal = true;

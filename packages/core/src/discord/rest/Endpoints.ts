@@ -1,21 +1,14 @@
-/**
- * Standard Discord REST API Endpoints (API v10)
- * https://discord.com/developers/docs/reference#api-reference
- */
 
 export const API_VERSION = "10";
 export const API_BASE = `https://discord.com/api/v${API_VERSION}`;
 
 export const Endpoints = {
-  // Gateway
   gateway: () => `/gateway`,
   gatewayBot: () => `/gateway/bot`,
 
-  // Users
   user: (userId: string = "@me") => `/users/${userId}`,
   userMe: () => `/users/@me`,
 
-  // Applications & Slash Commands
   applicationCommands: (applicationId: string) =>
     `/applications/${applicationId}/commands`,
   applicationCommand: (applicationId: string, commandId: string) =>
@@ -25,7 +18,6 @@ export const Endpoints = {
   applicationGuildCommand: (applicationId: string, guildId: string, commandId: string) =>
     `/applications/${applicationId}/guilds/${guildId}/commands/${commandId}`,
 
-  // Interactions
   interactionCallback: (interactionId: string, token: string) =>
     `/interactions/${interactionId}/${token}/callback`,
   originalInteractionResponse: (applicationId: string, token: string) =>
@@ -35,13 +27,11 @@ export const Endpoints = {
   followupMessageSpecific: (applicationId: string, token: string, messageId: string) =>
     `/webhooks/${applicationId}/${token}/messages/${messageId}`,
 
-  // Channels & Messages
   channel: (channelId: string) => `/channels/${channelId}`,
   channelMessages: (channelId: string) => `/channels/${channelId}/messages`,
   channelMessage: (channelId: string, messageId: string) =>
     `/channels/${channelId}/messages/${messageId}`,
 
-  // Guilds
   guild: (guildId: string) => `/guilds/${guildId}`,
   guildMember: (guildId: string, userId: string) =>
     `/guilds/${guildId}/members/${userId}`,

@@ -38,7 +38,6 @@ describe("ApiServer (Security Hardening)", () => {
     const { port, host } = await server.start();
     const baseUrl = `http://${host}:${port}/api/health`;
 
-    // 1. Allowed origin preflight
     const allowedRes = await fetch(baseUrl, {
       method: "OPTIONS",
       headers: {
@@ -50,7 +49,6 @@ describe("ApiServer (Security Hardening)", () => {
     expect(allowedRes.headers.get("access-control-allow-origin")).toBe("https://trusted.example");
     expect(allowedRes.headers.get("access-control-allow-credentials")).toBe("true");
 
-    // 2. Disallowed origin preflight -> 403 Forbidden
     const disallowedRes = await fetch(baseUrl, {
       method: "OPTIONS",
       headers: {
@@ -77,7 +75,6 @@ describe("ApiServer (Security Hardening)", () => {
     const { port, host } = await server.start();
     const url = `http://${host}:${port}/api/upload`;
 
-    // Oversized body (2 KB)
     const largeData = "x".repeat(2048);
     const res = await fetch(url, {
       method: "POST",
@@ -144,13 +141,11 @@ describe("ApiServer (Security Hardening)", () => {
     const { port, host } = await server.start();
     const url = `http://${host}:${port}/api/ping`;
 
-    // Requests 1, 2, 3 should succeed
     for (let i = 0; i < 3; i++) {
       const res = await fetch(url);
       expect(res.status).toBe(200);
     }
 
-    // Request 4 should be rate limited (429)
     const rateLimitedRes = await fetch(url);
     expect(rateLimitedRes.status).toBe(429);
     expect(rateLimitedRes.headers.get("retry-after")).toBeDefined();
@@ -171,17 +166,14 @@ describe("ApiServer (Security Hardening)", () => {
     const { port, host } = await server.start();
     const url = `http://${host}:${port}/api/secret`;
 
-    // Without token -> 401
     const unauthRes = await fetch(url);
     expect(unauthRes.status).toBe(401);
 
-    // With wrong token -> 401
     const wrongRes = await fetch(url, {
       headers: { Authorization: "Bearer wrong" },
     });
     expect(wrongRes.status).toBe(401);
 
-    // With valid token -> 200
     const validRes = await fetch(url, {
       headers: { Authorization: "Bearer secret-token-123" },
     });

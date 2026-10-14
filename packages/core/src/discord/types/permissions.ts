@@ -1,7 +1,3 @@
-/**
- * Discord Permissions & Bitfield operations (API v10)
- * https://discord.com/developers/docs/topics/permissions
- */
 
 export const PermissionFlagsBits = {
   CreateInstantInvite: 1n << 0n,

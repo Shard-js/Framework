@@ -15,7 +15,6 @@ export async function runCreateShard(): Promise<void> {
     "my-shard-bot";
   rl.close();
 
-  // Dynamic import of CLI create handler
   try {
     const { runCreate } = await import("@shardjs/cli");
     await runCreate(targetName.trim());

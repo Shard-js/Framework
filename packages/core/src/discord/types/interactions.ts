@@ -7,10 +7,6 @@ import type {
   DiscordAllowedMentions,
 } from "./entities.js";
 
-/**
- * Discord Interaction Types (API v10)
- * https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
- */
 export enum InteractionType {
   Ping = 1,
   ApplicationCommand = 2,
@@ -19,10 +15,6 @@ export enum InteractionType {
   ModalSubmit = 5,
 }
 
-/**
- * Discord Interaction Response Types
- * https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
- */
 export enum InteractionResponseType {
   Pong = 1,
   ChannelMessageWithSource = 4,

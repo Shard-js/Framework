@@ -26,7 +26,6 @@ export default defineCommand({
 
     await interaction.deferReply({ ephemeral: true });
 
-    // Optional database logging via injected db
     if (db) {
       console.log(`[db] Logging ban for user ${targetUser?.id}: ${reason}`);
     }

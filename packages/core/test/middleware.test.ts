@@ -30,7 +30,6 @@ describe("Middleware Execution & Fail-Closed (Issues #8 & #9)", () => {
     let finalHandlerCalled = false;
 
     const blockingMw = async (ctx: any, next: () => Promise<void>) => {
-      // Intentionally do NOT call next() because auth check failed
       ctx.blocked = true;
     };
 

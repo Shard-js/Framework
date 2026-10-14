@@ -1,7 +1,3 @@
-/**
- * WebSocket Abstraction Interface.
- * Allows swapping between 'ws' (pinned for Node 18/20 LTS) and native global WebSocket or mock implementations.
- */
 
 export interface IWebSocket {
   on(event: "open", listener: () => void): this;

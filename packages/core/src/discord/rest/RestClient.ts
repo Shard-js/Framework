@@ -127,7 +127,6 @@ export class RestClient {
 
       clearTimeout(timeoutId);
 
-      // Handle 429 Rate Limits
       if (response.status === 429) {
         let retryAfterMs = 1000;
         let isGlobal = response.headers.get("x-ratelimit-global") === "true";
@@ -159,7 +158,6 @@ export class RestClient {
 
       this.rateLimiter.updateHeaders(routeKey, response.headers, response.status);
 
-      // Handle Server Errors (5xx) with Exponential Backoff
       if (response.status >= 500 && response.status < 600) {
         if (attempt < this.maxRetries) {
           const backoff = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 10_000);
@@ -169,7 +167,6 @@ export class RestClient {
         throw new HTTPError(response.status, response.statusText, method, url);
       }
 
-      // Handle Client Errors (4xx)
       if (response.status >= 400) {
         let errorData: any;
         try {
@@ -199,7 +196,6 @@ export class RestClient {
         );
       }
 
-      // 204 No Content
       if (response.status === 204) {
         return { response, data: undefined as unknown as T };
       }

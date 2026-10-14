@@ -1,8 +1,3 @@
-/**
- * Rate Limiter for Discord API (v10)
- * Handles route buckets, global rate limits, and 429 Retry-After.
- * https://discord.com/developers/docs/topics/rate-limits
- */
 
 interface BucketQueueItem<T = any> {
   execute: () => Promise<T>;
@@ -13,7 +8,7 @@ interface BucketQueueItem<T = any> {
 interface BucketState {
   limit: number;
   remaining: number;
-  resetTime: number; // Unix timestamp in ms
+  resetTime: number;
   queue: BucketQueueItem[];
   processing: boolean;
 }
@@ -24,15 +19,9 @@ export class RateLimiter {
   private routeToBucket = new Map<string, string>();
   private activeSleepTimers = new Set<() => void>();
 
-  /**
-   * Normalizes an endpoint path to a route key for rate limiting.
-   * Preserves top-level resources and major parameters (channelId, guildId, webhookId).
-   */
   public getRouteKey(method: string, endpoint: string): string {
-    // Strip query parameters
     const [path] = endpoint.split("?");
 
-    // Replace minor IDs with generic tokens, keep major IDs (channels, guilds, webhooks)
     const normalized = path
       .replace(/\/channels\/(\d+)\/messages\/(\d+)/g, "/channels/$1/messages/:id")
       .replace(/\/guilds\/(\d+)\/members\/(\d+)/g, "/guilds/$1/members/:id")
@@ -41,9 +30,6 @@ export class RateLimiter {
     return `${method.toUpperCase()}:${normalized}`;
   }
 
-  /**
-   * Enqueues an API request through the bucket rate limiter.
-   */
   public async execute<T>(
     routeKey: string,
     requestFn: () => Promise<{ response: Response; data: T }>
@@ -94,7 +80,6 @@ export class RateLimiter {
     while (bucket.queue.length > 0) {
       const now = Date.now();
 
-      // Check global rate limit
       if (this.globalResetTime > now) {
         const waitMs = this.globalResetTime - now;
         try {
@@ -105,7 +90,6 @@ export class RateLimiter {
         continue;
       }
 
-      // Check bucket rate limit
       if (bucket.remaining <= 0 && bucket.resetTime > now) {
         const waitMs = bucket.resetTime - now;
         try {
@@ -130,9 +114,6 @@ export class RateLimiter {
     bucket.processing = false;
   }
 
-  /**
-   * Updates bucket state from Discord HTTP response headers.
-   */
   public updateHeaders(
     routeKey: string,
     headers: Headers,
@@ -169,7 +150,6 @@ export class RateLimiter {
       bucket.resetTime = Date.now() + Math.ceil(resetAfterSec * 1000);
     }
 
-    // Handle 429 Rate Limit
     if (status === 429 && retryAfterMs) {
       if (isGlobal) {
         this.globalResetTime = Date.now() + retryAfterMs;

@@ -37,7 +37,6 @@ describe("drizzlePlugin (Issue #3)", () => {
       },
     });
 
-    // Should NOT inject dummy { _isMock: true }
     expect(injectedKey).toBe("");
     expect(injectedValue).toBeNull();
   });

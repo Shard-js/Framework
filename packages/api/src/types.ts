@@ -39,8 +39,8 @@ export interface CorsConfig {
 }
 
 export interface RateLimitConfig {
-  windowMs?: number; // Time window in ms (default: 60_000)
-  max?: number;      // Max requests per window per IP (default: 100)
+  windowMs?: number;
+  max?: number;
 }
 
 export interface ApiAuthConfig {
@@ -56,11 +56,11 @@ export interface ApiServerConfig {
   publicUrl?: string;
   allowedHosts?: string[];
   trustHostHeader?: boolean;
-  maxBodySize?: number;       // Default: 1MB (1_048_576 bytes)
-  requestTimeoutMs?: number;  // Default: 30_000ms
-  headersTimeoutMs?: number;  // Default: 15_000ms
-  keepAliveTimeoutMs?: number;// Default: 5_000ms
-  maxConnections?: number;    // Default: 1_000
+  maxBodySize?: number;
+  requestTimeoutMs?: number;
+  headersTimeoutMs?: number;
+  keepAliveTimeoutMs?: number;
+  maxConnections?: number;
   rateLimit?: RateLimitConfig;
   auth?: ApiAuthConfig;
 }

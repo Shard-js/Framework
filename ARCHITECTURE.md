@@ -157,9 +157,13 @@ In development mode (`shard dev`):
   - Defaults bind host to `127.0.0.1` (safe local development) and warns on `0.0.0.0`.
   - Configurable `maxBodySize` streaming limit (default: 1MB) returning `413 Payload Too Large`.
   - Strict CORS origin validation: enforces `Vary: Origin`, forbids wildcard origin with credentials, and returns `403 Forbidden` on unauthorized preflight requests.
+  - Returns `405 Method Not Allowed` with compliant `Allow` header when the path matches but the requested HTTP verb is not defined.
+  - Transparent `HEAD` request support by dispatching to `GET` handler and omitting response body.
+  - Central error handling and clean status code propagation (400, 401, 403, 404, 405, 413, 429, 500) preventing unhandled process crashes.
   - Server timeout guards (`requestTimeout`, `headersTimeout`, `keepAliveTimeout`) and connection limits (`maxConnections`).
   - Client-disconnect stream cancellation.
-  - Built-in sliding-window IP rate limiter.
+  - Built-in sliding-window IP rate limiter with automatic expired entry pruning.
+  - Fail-fast configuration validation on startup via Zod schemas.
 
 ---
 

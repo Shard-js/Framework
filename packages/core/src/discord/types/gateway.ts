@@ -1,9 +1,5 @@
 import type { DiscordUser } from "./entities.js";
 
-/**
- * Discord Gateway Opcodes (API v10)
- * https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
- */
 export enum GatewayOpcodes {
   Dispatch = 0,
   Heartbeat = 1,
@@ -18,10 +14,6 @@ export enum GatewayOpcodes {
   HeartbeatAck = 11,
 }
 
-/**
- * Discord Gateway Close Event Codes
- * https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-close-event-codes
- */
 export enum GatewayCloseCodes {
   UnknownError = 4000,
   UnknownOpcode = 4001,
@@ -39,10 +31,6 @@ export enum GatewayCloseCodes {
   DisallowedIntents = 4014,
 }
 
-/**
- * Determines whether a close code is recoverable (allows reconnection and/or resume)
- * or fatal (cannot recover without configuration / token changes).
- */
 export function isRecoverableCloseCode(code: number): boolean {
   switch (code) {
     case GatewayCloseCodes.AuthenticationFailed:
@@ -57,10 +45,6 @@ export function isRecoverableCloseCode(code: number): boolean {
   }
 }
 
-/**
- * Gateway Intents (API v10)
- * https://discord.com/developers/docs/topics/gateway#gateway-intents
- */
 export const GatewayIntentBits = {
   Guilds: 1 << 0,
   GuildMembers: 1 << 1,
@@ -85,9 +69,6 @@ export const GatewayIntentBits = {
 
 export type GatewayIntentBits = (typeof GatewayIntentBits)[keyof typeof GatewayIntentBits];
 
-/**
- * Standard Gateway Payload Structure
- */
 export interface GatewayPayload<T = any> {
   op: GatewayOpcodes;
   d: T;

@@ -23,7 +23,6 @@ export {
 export async function runCli(argv = process.argv): Promise<void> {
   const cli = cac("shard");
 
-  // Load config to check for plugin CLI extensions
   let plugins: any[] = [];
   try {
     const { config } = await loadConfig(process.cwd());
@@ -34,14 +33,12 @@ export async function runCli(argv = process.argv): Promise<void> {
     // ignore config errors during initial commands like create
   }
 
-  // shard create <name>
   cli
     .command("create [name]", "Create a new shard Discord bot project")
     .action(async (name) => {
       await runCreate(name);
     });
 
-  // shard dev
   cli
     .command("dev", "Start bot in development mode with Hot Module Reloading")
     .option("-p, --port <port>", "Port for the built-in HTTP Web API", {
@@ -51,7 +48,6 @@ export async function runCli(argv = process.argv): Promise<void> {
       await runDev({ port: Number(options.port) });
     });
 
-  // shard build
   cli
     .command("build", "Build optimized ESM production bundle")
     .option("--outDir <dir>", "Output directory", { default: ".shard/dist" })
@@ -59,7 +55,6 @@ export async function runCli(argv = process.argv): Promise<void> {
       await runBuild({ outDir: options.outDir });
     });
 
-  // shard start
   cli
     .command("start", "Start compiled bot in production mode")
     .option("-p, --port <port>", "Port for the HTTP Web API")
@@ -67,7 +62,6 @@ export async function runCli(argv = process.argv): Promise<void> {
       await runStart({ port: options.port ? Number(options.port) : undefined });
     });
 
-  // shard deploy
   cli
     .command("deploy", "Deploy application slash commands to Discord")
     .option("-g, --guild <id>", "Target Guild ID for instant deployment")
@@ -77,14 +71,12 @@ export async function runCli(argv = process.argv): Promise<void> {
       await runDeploy(options);
     });
 
-  // shard doctor
   cli
     .command("doctor", "Validate environment, tokens, intents and project health")
     .action(async () => {
       await runDoctor();
     });
 
-  // shard docker build & shard docker run
   cli
     .command("docker:build [tag]", "Build a production Docker container image")
     .action(async (tag) => {
@@ -98,7 +90,6 @@ export async function runCli(argv = process.argv): Promise<void> {
       await runDockerRun(tag, options.port);
     });
 
-  // Allow registered plugins to extend the CLI
   for (const plugin of plugins) {
     if (typeof plugin.cli === "function") {
       try {

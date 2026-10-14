@@ -171,15 +171,12 @@ export class CommandOptionResolver {
     this.resolved = interaction.data?.resolved || {};
     let currentOptions = interaction.data?.options || [];
 
-    // Find subcommand group or subcommand
     if (currentOptions.length === 1 && currentOptions[0].type === 2) {
-      // SubcommandGroup
       this.subcommandGroup = currentOptions[0].name;
       currentOptions = currentOptions[0].options || [];
     }
 
     if (currentOptions.length === 1 && currentOptions[0].type === 1) {
-      // Subcommand
       this.subcommand = currentOptions[0].name;
       currentOptions = currentOptions[0].options || [];
     }

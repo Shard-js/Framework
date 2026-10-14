@@ -16,7 +16,6 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
 
   console.log(colors.cyan(colors.bold("\n📦 shard build - Compiling for production...\n")));
 
-  // Clean outDir
   if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true, force: true });
   }
@@ -24,7 +23,6 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
 
   const srcDir = path.join(rootDir, "src");
 
-  // Collect entry files
   const router = new FileRouter(rootDir);
   const entryPoints = router.getFilesRecursively(srcDir);
 
@@ -33,7 +31,6 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
     entryPoints.push(configFile);
   }
 
-  // Compile with esbuild (sourcemaps disabled by default in production, Issue #15)
   await esbuild.build({
     entryPoints,
     outdir: outDir,
@@ -44,7 +41,6 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
     bundle: false, // keep file structure intact for file routing
   });
 
-  // Generate production runner entrypoint with correct rootDir resolution (Issue #4)
   const prodRunnerContent = `import { loadConfig, createBot } from "@shardjs/core";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -82,7 +78,6 @@ console.log("[shard] Production bot running.");
 
   fs.writeFileSync(path.join(outDir, "runner.js"), prodRunnerContent, "utf-8");
 
-  // Router summary
   await router.loadAll();
 
   const elapsed = (performance.now() - startTime).toFixed(0);

@@ -17,9 +17,6 @@ export interface ClientMessage extends DiscordMessage {
   };
 }
 
-/**
- * Mapping of Discord Gateway dispatch events to their payload types.
- */
 export interface GatewayEventMap {
   ready: [client: Client];
   resumed: [];

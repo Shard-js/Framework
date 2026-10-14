@@ -1,8 +1,5 @@
 import type { MiddlewareHandler } from "../types/index.js";
 
-/**
- * Executes a middleware pipeline in onion-fashion (Koa/Hono model).
- */
 export async function composeMiddlewares<T>(
   middlewares: MiddlewareHandler<T>[],
   ctx: T,

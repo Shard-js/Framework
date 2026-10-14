@@ -3,10 +3,6 @@ export interface CacheLimits {
   sweepIntervalMs?: number;
 }
 
-/**
- * Memory-safe LRU Cache for Discord entities (Guilds, Channels, Messages, Users).
- * Implements standard Map interface for drop-in compatibility with discord.js Collection/Map.
- */
 export class ClientCache<K, V> implements Map<K, V> {
   private map: Map<K, V> = new Map();
   private maxSize: number;
@@ -30,7 +26,6 @@ export class ClientCache<K, V> implements Map<K, V> {
   public get(key: K): V | undefined {
     const val = this.map.get(key);
     if (val !== undefined) {
-      // Re-insert to refresh LRU order
       this.map.delete(key);
       this.map.set(key, val);
     }
@@ -41,7 +36,6 @@ export class ClientCache<K, V> implements Map<K, V> {
     if (this.map.has(key)) {
       this.map.delete(key);
     } else if (this.map.size >= this.maxSize) {
-      // Remove oldest entry (first item)
       const firstKey = this.map.keys().next().value;
       if (firstKey !== undefined) {
         this.map.delete(firstKey);
@@ -74,7 +68,6 @@ export class ClientCache<K, V> implements Map<K, V> {
         }
       }
     } else {
-      // Halve oldest entries if over 75% capacity
       if (this.map.size > this.maxSize * 0.75) {
         const toRemove = Math.floor(this.map.size * 0.25);
         let count = 0;

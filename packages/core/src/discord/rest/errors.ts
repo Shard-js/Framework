@@ -1,6 +1,3 @@
-/**
- * Error classes for Discord REST API interactions.
- */
 
 export class HTTPError extends Error {
   public status: number;

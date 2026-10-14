@@ -30,7 +30,6 @@ export async function runDev(options: DevCommandOptions = {}): Promise<void> {
     console.error(colors.red("[shard] Failed to start bot:"), err.message);
   }
 
-  // Setup Hot-Module-Reloading File Watcher on src/
   const watchPath = path.join(rootDir, "src");
   const watcher = chokidar.watch(watchPath, {
     ignoreInitial: true,
@@ -61,7 +60,6 @@ export async function runDev(options: DevCommandOptions = {}): Promise<void> {
     }
   });
 
-  // Watch shard.config.ts
   let configWatcher: ReturnType<typeof chokidar.watch> | null = null;
   if (configPath) {
     configWatcher = chokidar.watch(configPath, { ignoreInitial: true });
@@ -72,7 +70,6 @@ export async function runDev(options: DevCommandOptions = {}): Promise<void> {
     });
   }
 
-  // Graceful shutdown
   const shutdown = async () => {
     console.log(colors.yellow("\n🛑 Stopping shard dev server..."));
     if (watcher) await watcher.close();

@@ -62,7 +62,6 @@ export const POST = defineRoute(async ({ request, params, bot }) => {
 
   const channel = guild.channels?.cache?.get(body.channelId) || bot.channels.get(body.channelId);
 
-  // Send message with enforced allowedMentions: { parse: [] } to prevent mention abuse (Issue #7)
   const messageContent = String(body.message || "Hello from shard REST API!").slice(0, 2000);
 
   if (channel && typeof channel.send === "function") {
@@ -73,7 +72,6 @@ export const POST = defineRoute(async ({ request, params, bot }) => {
     return Response.json({ success: true, sentTo: body.channelId });
   }
 
-  // Fallback to bot.rest directly if channel not in cache
   try {
     await bot.rest.post(`/channels/${body.channelId}/messages`, {
       body: {

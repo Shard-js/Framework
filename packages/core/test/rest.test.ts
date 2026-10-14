@@ -16,7 +16,6 @@ describe("RestClient & RateLimiter", () => {
     server = http.createServer((req, res) => {
       requestCount++;
 
-      // Rate limit test endpoint
       if (req.url === "/ratelimit") {
         if (!hitRateLimitOnce) {
           hitRateLimitOnce = true;
@@ -40,7 +39,6 @@ describe("RestClient & RateLimiter", () => {
         return;
       }
 
-      // Retry on 5xx endpoint
       if (req.url === "/server-error") {
         if (!hit500Once) {
           hit500Once = true;
@@ -54,7 +52,6 @@ describe("RestClient & RateLimiter", () => {
         return;
       }
 
-      // Auth check endpoint
       if (req.url === "/auth-check") {
         const auth = req.headers.authorization;
         const ua = req.headers["user-agent"];
@@ -68,7 +65,6 @@ describe("RestClient & RateLimiter", () => {
         return;
       }
 
-      // Discord API error endpoint
       if (req.url === "/api-error") {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(
@@ -81,7 +77,6 @@ describe("RestClient & RateLimiter", () => {
         return;
       }
 
-      // Default 404
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Not found" }));
     });

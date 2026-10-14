@@ -25,7 +25,6 @@ export class ApiServer {
     this.router = new ApiRouter(config.prefix || "/api");
     this.contextProvider = contextProvider;
 
-    // Validate CORS configuration (Issue #10)
     const cors = this.config.cors;
     if (cors) {
       const origins = Array.isArray(cors.origin)
@@ -47,7 +46,6 @@ export class ApiServer {
 
   public async start(): Promise<{ port: number; host: string }> {
     const port = this.config.port ?? 3000;
-    // Default to 127.0.0.1 instead of 0.0.0.0 for security (Issue #5)
     const host = this.config.host ?? "127.0.0.1";
 
     if (host === "0.0.0.0") {
@@ -73,7 +71,6 @@ export class ApiServer {
         }
       });
 
-      // Configure timeouts and connection limits (Issue #11)
       this.server.requestTimeout = this.config.requestTimeoutMs ?? 30_000;
       this.server.headersTimeout = this.config.headersTimeoutMs ?? 15_000;
       this.server.keepAliveTimeout = this.config.keepAliveTimeoutMs ?? 5_000;
@@ -108,10 +105,6 @@ export class ApiServer {
     });
   }
 
-  /**
-   * Applies secure CORS headers (Issue #10).
-   * Returns true if request was handled (e.g. OPTIONS preflight).
-   */
   private applyCorsHeaders(
     req: http.IncomingMessage,
     res: http.ServerResponse
@@ -149,7 +142,6 @@ export class ApiServer {
     const headers = cors.headers ?? ["Content-Type", "Authorization"];
     res.setHeader("Access-Control-Allow-Headers", headers.join(", "));
 
-    // Handle OPTIONS preflight
     if (req.method === "OPTIONS") {
       if (originHeader && !isAllowed) {
         res.writeHead(403, { "Content-Type": "application/json" });
@@ -164,9 +156,6 @@ export class ApiServer {
     return false;
   }
 
-  /**
-   * Enforces IP-based rate limiting if configured (Issue #11).
-   */
   private checkRateLimit(req: http.IncomingMessage, res: http.ServerResponse): boolean {
     if (!this.config.rateLimit) return true;
 
@@ -206,9 +195,6 @@ export class ApiServer {
     return true;
   }
 
-  /**
-   * Enforces global API server authentication if configured (Issue #5 & #11).
-   */
   private checkAuth(req: http.IncomingMessage, res: http.ServerResponse): boolean {
     if (!this.config.auth) return true;
 
@@ -271,7 +257,6 @@ export class ApiServer {
     const port = this.config.port ?? 3000;
     const rawUrl = req.url || "/";
 
-    // Build URL securely without trusting unvalidated Host headers (Issue #13)
     let fullUrl: URL;
     try {
       let base: string;
@@ -295,10 +280,8 @@ export class ApiServer {
       return;
     }
 
-    // Match route
     const matched = this.router.match(fullUrl.pathname, req.method || "GET");
 
-    // Malformed percent-encoding in route params returns 400 Bad Request (Issue #12)
     if (matched && matched.malformed) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(
@@ -335,8 +318,7 @@ export class ApiServer {
       return;
     }
 
-    // Enforce payload limit on Content-Length (Issue #5)
-    const maxBodySize = this.config.maxBodySize ?? 1_048_576; // 1 MB
+    const maxBodySize = this.config.maxBodySize ?? 1_048_576;
     const contentLength = req.headers["content-length"];
     if (contentLength && parseInt(contentLength, 10) > maxBodySize) {
       res.writeHead(413, { "Content-Type": "application/json" });
@@ -344,13 +326,11 @@ export class ApiServer {
       return;
     }
 
-    // Convert node incoming request to Web Standard Request with payload streaming limit
     const webRequest = this.toWebRequest(req, fullUrl, maxBodySize, res);
     if (!webRequest) {
       return;
     }
 
-    // Build context with bot, db, plugins, params
     const baseContext = this.contextProvider();
     const ctx: RouteHandlerContext = {
       ...baseContext,
@@ -359,7 +339,6 @@ export class ApiServer {
       url: fullUrl,
     };
 
-    // Execute route handler with central error handling
     try {
       const response = await matched.handler!(ctx);
       if (!(response instanceof Response)) {
@@ -483,7 +462,6 @@ export class ApiServer {
 
     const reader = response.body.getReader();
 
-    // Cancel reader on client disconnect to stop stream leaks (Issue #11)
     res.on("close", () => {
       reader.cancel().catch(() => {});
     });

@@ -67,7 +67,6 @@ describe("Example API Route Security (Issue #7)", () => {
     expect(res.status).toBe(200);
     expect(sentPayload).toBeDefined();
     expect(sentPayload.content).toBe("@everyone Hello");
-    // Verify allowedMentions restriction is strictly enforced against mass pings
     expect(sentPayload.allowedMentions).toEqual({ parse: [] });
   });
 });

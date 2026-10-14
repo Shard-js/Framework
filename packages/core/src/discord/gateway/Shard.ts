@@ -44,18 +44,15 @@ export class Shard extends EventEmitter {
   private wsFactory: WebSocketFactory;
   private ws: IWebSocket | null = null;
 
-  // Session & sequence
   public sessionId: string | null = null;
   public resumeGatewayUrl: string | null = null;
   public seq: number | null = null;
 
-  // Heartbeat tracking
   private heartbeatInterval: number | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private heartbeatAckReceived = true;
   private lastHeartbeatSentAt = 0;
 
-  // Reconnection backoff
   private reconnectAttempts = 0;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private invalidSessionTimer: NodeJS.Timeout | null = null;
@@ -153,7 +150,6 @@ export class Shard extends EventEmitter {
       return;
     }
 
-    // Update sequence number for dispatch events
     if (payload.s !== undefined && payload.s !== null) {
       this.seq = payload.s;
     }
@@ -172,7 +168,6 @@ export class Shard extends EventEmitter {
         break;
 
       case GatewayOpcodes.Heartbeat:
-        // Discord can request an immediate heartbeat
         this.sendHeartbeat();
         break;
 
@@ -189,7 +184,6 @@ export class Shard extends EventEmitter {
           this.resumeGatewayUrl = null;
           this.seq = null;
         }
-        // Discord docs: wait a random 1-5 seconds before reconnecting
         this.invalidSessionTimer = setTimeout(() => {
           this.invalidSessionTimer = null;
           this.reconnect(resumable);
@@ -206,7 +200,6 @@ export class Shard extends EventEmitter {
     this.heartbeatInterval = data.heartbeat_interval;
     this.heartbeatAckReceived = true;
 
-    // Start heartbeating with initial jitter: interval * Math.random()
     const jitter = Math.floor(this.heartbeatInterval * Math.random());
     this.heartbeatTimer = setTimeout(() => {
       this.sendHeartbeat();
@@ -215,7 +208,6 @@ export class Shard extends EventEmitter {
       }, this.heartbeatInterval!);
     }, jitter);
 
-    // Identify or Resume
     if (this.sessionId && this.seq !== null) {
       this.sendResume();
     } else {
@@ -224,7 +216,6 @@ export class Shard extends EventEmitter {
   }
 
   private sendHeartbeat(): void {
-    // Check if previous heartbeat was acknowledged
     if (!this.heartbeatAckReceived) {
       this.emit(
         "debug",

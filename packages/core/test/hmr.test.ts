@@ -11,7 +11,6 @@ describe("HMR & Listener Deregistration (Issue #1)", () => {
     const router = new FileRouter();
     const eventFile = norm("src/events/ready.ts");
 
-    // Mock loadEvents
     let version = 1;
     router.loadEvents = async () => {
       const eventDef = {
@@ -29,15 +28,12 @@ describe("HMR & Listener Deregistration (Issue #1)", () => {
       });
     };
 
-    // Initial load
     await router.loadEvents();
     expect(router.events.get("ready")).toHaveLength(1);
 
-    // Simulate 5 consecutive HMR reloads on the same file
     for (let i = 2; i <= 6; i++) {
       version = i;
       await router.reloadFile(eventFile);
-      // Must NOT accumulate duplicates
       expect(router.events.get("ready")).toHaveLength(1);
     }
 
@@ -49,7 +45,6 @@ describe("HMR & Listener Deregistration (Issue #1)", () => {
     const router = new FileRouter();
     const cmdFile = norm("src/commands/ping.ts");
 
-    // Register a command
     router.commands.set("ping", {
       name: "ping",
       description: "Ping command",
@@ -63,10 +58,8 @@ describe("HMR & Listener Deregistration (Issue #1)", () => {
 
     expect(router.commands.has("ping")).toBe(true);
 
-    // Mock loadCommands to do nothing (simulating file was removed)
     router.loadCommands = async () => {};
 
-    // Reloading deleted file removes it from router.commands
     await router.reloadFile(cmdFile);
     expect(router.commands.has("ping")).toBe(false);
   });

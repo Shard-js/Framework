@@ -86,7 +86,6 @@ export class Client extends EventEmitter {
       throw new Error("No bot token provided to client.login().");
     }
 
-    // Connect shard manager to gateway
     await this.shardManager.connect();
     return this.token;
   }
@@ -153,8 +152,6 @@ export class Client extends EventEmitter {
         break;
 
       default:
-        // Dynamic event dispatching (Issue #2 & #16)
-        // Convert UPPER_SNAKE_CASE to camelCase: GUILD_MEMBER_ADD -> guildMemberAdd
         const camelEvent = this.toCamelCase(event);
         this.emit(camelEvent, data);
         this.emit(event, data);

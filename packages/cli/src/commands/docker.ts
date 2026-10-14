@@ -76,7 +76,6 @@ export async function runDockerBuild(tag = "shard-bot:latest"): Promise<void> {
   const dockerfilePath = path.join(rootDir, "Dockerfile");
   const dockerignorePath = path.join(rootDir, ".dockerignore");
 
-  // Ensure .dockerignore exists to protect secrets (Issue #15)
   if (!fs.existsSync(dockerignorePath)) {
     fs.writeFileSync(dockerignorePath, DOCKERIGNORE_CONTENT, "utf-8");
     console.log(colors.green("🐳 Generated secure .dockerignore."));
@@ -89,7 +88,6 @@ export async function runDockerBuild(tag = "shard-bot:latest"): Promise<void> {
 
   console.log(colors.cyan(`\n🐳 Building Docker image: ${tag}...`));
 
-  // Remove shell: true to prevent command injection (Issue #6)
   const proc = spawn("docker", ["build", "-t", tag, "."], {
     stdio: "inherit",
     cwd: rootDir,
@@ -118,7 +116,6 @@ export async function runDockerRun(
 
   console.log(colors.cyan(`\n🐳 Running Docker container '${tag}' on port ${validatedPort}...`));
 
-  // Remove shell: true to prevent command injection (Issue #6)
   const proc = spawn(
     "docker",
     ["run", "--env-file", ".env", "-p", `${validatedPort}:${validatedPort}`, tag],

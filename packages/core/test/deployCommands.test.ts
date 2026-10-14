@@ -29,7 +29,7 @@ describe("commandToDiscordJson", () => {
       PermissionFlagsBits.SendMessages.toString()
     );
     expect(json.options).toHaveLength(1);
-    expect(json.options[0].type).toBe(5); // Boolean
+    expect(json.options[0].type).toBe(5);
     expect(json.options[0].name).toBe("ephemeral");
   });
 
@@ -78,19 +78,17 @@ describe("commandToDiscordJson", () => {
     expect(json.name).toBe("config");
     expect(json.options).toHaveLength(2);
 
-    // Subcommand type 1
     const subCmd = json.options[0];
     expect(subCmd.type).toBe(1);
     expect(subCmd.name).toBe("set");
     expect(subCmd.options).toHaveLength(2);
-    expect(subCmd.options[0].type).toBe(3); // String
+    expect(subCmd.options[0].type).toBe(3);
 
-    // SubcommandGroup type 2
     const subGroup = json.options[1];
     expect(subGroup.type).toBe(2);
     expect(subGroup.name).toBe("advanced");
     expect(subGroup.options).toHaveLength(1);
-    expect(subGroup.options[0].type).toBe(1); // Nested Subcommand
+    expect(subGroup.options[0].type).toBe(1);
     expect(subGroup.options[0].name).toBe("reset");
   });
 });

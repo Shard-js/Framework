@@ -10,7 +10,7 @@ export default defineMiddleware({
           content: "❌ You lack the required permissions to perform this action.",
           ephemeral: true,
         });
-        return; // Fail closed: do NOT call next()
+        return;
       }
     }
 

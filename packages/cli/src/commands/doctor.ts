@@ -24,7 +24,6 @@ export async function runDoctor(): Promise<void> {
     errors++;
   }
 
-  // 1. Node.js Version Check
   const nodeVersion = process.versions.node;
   const major = parseInt(nodeVersion.split(".")[0], 10);
   if (major >= 18) {
@@ -33,7 +32,6 @@ export async function runDoctor(): Promise<void> {
     fail(`Node.js version v${nodeVersion} is too old. Please upgrade to Node 18 or 20+`);
   }
 
-  // 2. Config File Check
   const { config, configPath } = await loadConfig(rootDir);
   if (configPath) {
     pass(`Configuration file found: ${path.basename(configPath)}`);
@@ -41,19 +39,16 @@ export async function runDoctor(): Promise<void> {
     warn("No shard.config.(ts|js) found in project root.");
   }
 
-  // 3. Environment & Token Check
   const token = config.token || process.env.DISCORD_TOKEN;
   if (!token) {
     fail("DISCORD_TOKEN is missing! Set DISCORD_TOKEN in .env or shard.config.ts");
   } else {
-    // Mask token for security
     const masked =
       token.length > 10
         ? `${token.slice(0, 8)}...${token.slice(-4)}`
         : "********";
     pass(`Discord Token detected (${masked})`);
 
-    // 4. Test Discord REST Connection
     try {
       const rest = new RestClient({ token });
       const user: any = await rest.get(Endpoints.userMe());
@@ -63,7 +58,6 @@ export async function runDoctor(): Promise<void> {
     }
   }
 
-  // 5. Intents Check
   try {
     const intents = normalizeIntents(config.intents);
     pass(`Intents configured: ${intents.length} bitmask(s) active`);
@@ -71,7 +65,6 @@ export async function runDoctor(): Promise<void> {
     fail(`Intents configuration error: ${err.message}`);
   }
 
-  // 6. Directory Structure Check
   const src = fs.existsSync(path.join(rootDir, "src"))
     ? path.join(rootDir, "src")
     : rootDir;

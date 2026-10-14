@@ -8,12 +8,10 @@ import {
 
 describe("Docker Security & Hardening (Issues #6 & #15)", () => {
   it("validates docker image tags and prevents shell injection metacharacters (Issue #6)", () => {
-    // Valid tags
     expect(() => validateDockerTag("shard-bot:latest")).not.toThrow();
     expect(() => validateDockerTag("my-org/my-bot:v1.0.0")).not.toThrow();
     expect(() => validateDockerTag("bot:123")).not.toThrow();
 
-    // Attack attempts with shell metacharacters
     expect(() => validateDockerTag("x; id > /tmp/pwned #")).toThrowError(/Invalid Docker tag/);
     expect(() => validateDockerTag("latest $(whoami)")).toThrowError(/Invalid Docker tag/);
     expect(() => validateDockerTag("bot && rm -rf /")).toThrowError(/Invalid Docker tag/);
@@ -23,7 +21,6 @@ describe("Docker Security & Hardening (Issues #6 & #15)", () => {
     expect(validateDockerPort(3000)).toBe(3000);
     expect(validateDockerPort("8080")).toBe(8080);
 
-    // Invalid port attempts
     expect(() => validateDockerPort("3000 $(id)")).toThrowError(/Invalid port/);
     expect(() => validateDockerPort(0)).toThrowError(/Invalid port/);
     expect(() => validateDockerPort(70000)).toThrowError(/Invalid port/);

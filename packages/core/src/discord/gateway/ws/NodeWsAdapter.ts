@@ -1,9 +1,6 @@
 import WebSocket from "ws";
 import type { IWebSocket, WebSocketFactory } from "./IWebSocket.js";
 
-/**
- * Adapter wrapping 'ws' package to implement IWebSocket.
- */
 export class NodeWsAdapter implements IWebSocket {
   private ws: WebSocket;
 

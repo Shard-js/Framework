@@ -11,50 +11,26 @@ import type { GatewayIntentBits } from "../discord/types/gateway.js";
 import type { PermissionResolvable } from "../discord/types/permissions.js";
 import type { GatewayEventMap } from "../discord/types/events.js";
 
-/**
- * Global Shard context interface, open for module augmentation by plugins.
- *
- * @example
- * ```ts
- * declare module "@shardjs/core" {
- *   interface ShardContext {
- *     db: MyDatabase;
- *   }
- * }
- * ```
- */
 export interface ShardContext {
   bot: Client;
   client: Client;
   [key: string]: any;
 }
 
-/**
- * Context passed to command run handlers
- */
 export interface CommandContext<TOptions = any> extends ShardContext {
   interaction: CommandInteraction;
   options: CommandInteraction["options"];
   parsedOptions?: TOptions;
 }
 
-/**
- * Context passed to command autocomplete handlers
- */
 export interface AutocompleteContext extends ShardContext {
   interaction: AutocompleteInteraction;
 }
 
-/**
- * Context passed to component (button, select) handlers
- */
 export interface ComponentContext extends ShardContext {
   interaction: ComponentInteraction;
 }
 
-/**
- * Context passed to modal submit handlers
- */
 export interface ModalContext extends ShardContext {
   interaction: ModalInteraction;
 }

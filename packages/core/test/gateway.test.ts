@@ -28,7 +28,6 @@ describe("Gateway Shard & Protocol", () => {
     let identified = false;
 
     wss.once("connection", (socket) => {
-      // 1. Send Hello (Opcode 10)
       socket.send(
         JSON.stringify({
           op: GatewayOpcodes.Hello,
@@ -36,7 +35,6 @@ describe("Gateway Shard & Protocol", () => {
         })
       );
 
-      // Listen for Identify (Opcode 2)
       socket.on("message", (raw) => {
         const msg = JSON.parse(raw.toString());
         if (msg.op === GatewayOpcodes.Identify) {
@@ -44,7 +42,6 @@ describe("Gateway Shard & Protocol", () => {
           expect(msg.d.token).toBe("test_token");
           expect(msg.d.intents).toBe(513);
 
-          // 2. Reply with Ready (Opcode 0)
           socket.send(
             JSON.stringify({
               op: GatewayOpcodes.Dispatch,
@@ -98,7 +95,6 @@ describe("Gateway Shard & Protocol", () => {
         const msg = JSON.parse(raw.toString());
         if (msg.op === GatewayOpcodes.Heartbeat) {
           heartbeatReceived = true;
-          // Reply with HeartbeatAck (Opcode 11)
           socket.send(JSON.stringify({ op: GatewayOpcodes.HeartbeatAck }));
         }
       });

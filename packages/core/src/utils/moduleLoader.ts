@@ -3,10 +3,6 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import esbuild from "esbuild";
 
-/**
- * Loads a JavaScript or TypeScript module dynamically.
- * Transpiles TypeScript on-the-fly into `.shard/cache/` using esbuild.
- */
 export async function importModule<T = any>(
   filePath: string,
   rootDir: string = process.cwd()
@@ -19,7 +15,6 @@ export async function importModule<T = any>(
     return mod.default || mod;
   }
 
-  // Calculate destination in .shard/cache
   const cacheDir = path.join(rootDir, ".shard", "cache");
   const relPath = path.relative(rootDir, filePath);
   const cacheFilePath = path.join(
@@ -29,7 +24,6 @@ export async function importModule<T = any>(
 
   fs.mkdirSync(path.dirname(cacheFilePath), { recursive: true });
 
-  // Transpile fast with esbuild
   await esbuild.build({
     entryPoints: [filePath],
     outfile: cacheFilePath,

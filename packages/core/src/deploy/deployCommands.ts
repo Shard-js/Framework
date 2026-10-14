@@ -24,10 +24,6 @@ const OPTION_TYPE_MAP: Record<CommandOptionType, number> = {
   Attachment: ApplicationCommandOptionType.Attachment,
 };
 
-/**
- * Transforms a CommandDefinition to Discord REST API JSON format (API v10)
- * Supports Subcommands and SubcommandGroups recursively.
- */
 export function commandToDiscordJson(cmd: CommandDefinition): any {
   const json: any = {
     name: cmd.name,
@@ -61,7 +57,6 @@ function transformOption(opt: CommandOptionDefinition): any {
     description: opt.description,
   };
 
-  // Subcommands/SubcommandGroups do not have required/autocomplete
   if (
     opt.type !== "Subcommand" &&
     opt.type !== "SubcommandGroup"
@@ -76,7 +71,6 @@ function transformOption(opt: CommandOptionDefinition): any {
     }
   }
 
-  // Recursive options for Subcommands and SubcommandGroups (Issue #2)
   if (opt.options && opt.options.length > 0) {
     json.options = opt.options.map((subOpt) => transformOption(subOpt));
   }
@@ -102,7 +96,6 @@ export async function deployCommands(
 
   const rest = new RestClient({ token });
 
-  // Retrieve Bot Client ID from Discord REST /users/@me
   const currentUser: any = await rest.get(Endpoints.userMe());
   const clientId = currentUser.id;
 

@@ -50,7 +50,6 @@ export function createBot(
     ...config.clientOptions,
   });
 
-  // API Server if configured
   let apiServer: ApiServer | undefined;
   if (config.api) {
     apiServer = new ApiServer(config.api);
@@ -58,7 +57,6 @@ export function createBot(
 
   const router = new FileRouter(rootDir, apiServer?.router);
 
-  // Dynamic context container injected into commands, events, routes
   const context: ShardContext = {
     bot: client,
     client: client,
@@ -68,7 +66,6 @@ export function createBot(
     apiServer.setContextProvider(() => context);
   }
 
-  // Hook up event proxy listeners once on the client
   setupEventProxy(client, router, context);
 
   return {
@@ -78,10 +75,8 @@ export function createBot(
     context,
 
     async start() {
-      // 1. Load files (commands, events, middlewares, components, modals, routes, plugins)
       await router.loadAll();
 
-      // 2. Validate all command middleware references fail-closed (Issue #8)
       for (const cmd of router.commands.values()) {
         if (cmd.middleware) {
           for (const mwRef of cmd.middleware) {
@@ -94,7 +89,6 @@ export function createBot(
         }
       }
 
-      // 3. Setup Plugins
       const allPlugins = [...(config.plugins || []), ...router.plugins];
       for (const plugin of allPlugins) {
         if (plugin.setup) {
@@ -108,7 +102,6 @@ export function createBot(
         }
       }
 
-      // 4. Start API server if configured
       if (apiServer) {
         const { port, host } = await apiServer.start();
         console.log(
@@ -116,7 +109,6 @@ export function createBot(
         );
       }
 
-      // 5. Connect to Discord Gateway
       if (config.token) {
         await client.login(config.token);
       } else {
@@ -127,7 +119,6 @@ export function createBot(
     },
 
     async stop() {
-      // Teardown plugins
       const allPlugins = [...(config.plugins || []), ...router.plugins];
       for (const plugin of allPlugins) {
         if (plugin.teardown) {
@@ -135,27 +126,20 @@ export function createBot(
         }
       }
 
-      // Stop API
       if (apiServer) {
         await apiServer.stop();
       }
 
-      // Destroy Discord client
       await client.destroy();
     },
   };
 }
 
-/**
- * Attaches dynamic proxy listeners to the client.
- * Dispatches to router handlers dynamically without duplicate listener leaks.
- */
 function setupEventProxy(
   client: Client,
   router: FileRouter,
   context: ShardContext
 ): void {
-  // Proxy for Interactions (Commands, Autocomplete, Components, Modals)
   client.on("interactionCreate", async (interaction) => {
     try {
       if (interaction instanceof CommandInteraction) {
@@ -172,9 +156,6 @@ function setupEventProxy(
     }
   });
 
-  // Dynamic dispatch for all Discord Gateway events (Issue #2 & #16)
-  // Hook client.emit to dispatch enriched events (ready, messageCreate, guildCreate, etc.)
-  // and dynamically routed events to router.events without duplicate listener leaks.
   const originalEmit = client.emit.bind(client);
   client.emit = function (eventName: string | symbol, ...args: any[]): boolean {
     if (typeof eventName === "string" && eventName !== "interactionCreate") {
@@ -215,7 +196,6 @@ function setupEventProxy(
               });
             }
 
-            // Support once: true (Issue #16)
             if (handler.once) {
               removeEventHandler(router, camelEvent, handler);
               removeEventHandler(router, eventName, handler);
@@ -262,17 +242,14 @@ async function handleCommandInteraction(
     return;
   }
 
-  // Build middleware pipeline: global middlewares + command middlewares
   const pipeline: MiddlewareHandler[] = [];
 
-  // Global middlewares from src/middleware (skip named middlewares that are referenced individually)
   for (const mw of router.middlewares.values()) {
     if (!mw.name) {
       pipeline.push(mw.run);
     }
   }
 
-  // Command-specific middlewares (fail-closed if missing, Issue #8)
   if (command.middleware) {
     for (const mwRef of command.middleware) {
       if (typeof mwRef === "string") {

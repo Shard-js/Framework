@@ -12,7 +12,6 @@ export async function runCreate(name: string = "my-shard-bot"): Promise<void> {
     process.exit(1);
   }
 
-  // Create project directories
   const dirs = [
     path.join(targetDir, "src/commands"),
     path.join(targetDir, "src/events"),
@@ -24,7 +23,6 @@ export async function runCreate(name: string = "my-shard-bot"): Promise<void> {
     fs.mkdirSync(d, { recursive: true });
   }
 
-  // Write package.json
   const pkgJson = {
     name,
     version: "0.1.0",
@@ -52,7 +50,6 @@ export async function runCreate(name: string = "my-shard-bot"): Promise<void> {
     JSON.stringify(pkgJson, null, 2)
   );
 
-  // Write tsconfig.json
   const tsConfig = {
     compilerOptions: {
       target: "ES2022",
@@ -68,7 +65,6 @@ export async function runCreate(name: string = "my-shard-bot"): Promise<void> {
     JSON.stringify(tsConfig, null, 2)
   );
 
-  // Write shard.config.ts
   const shardConfig = `import { defineConfig, GatewayIntentBits } from "@shardjs/core";
 
 export default defineConfig({
@@ -85,7 +81,6 @@ export default defineConfig({
 `;
   fs.writeFileSync(path.join(targetDir, "shard.config.ts"), shardConfig);
 
-  // Write src/commands/ping.ts
   const pingCommand = `import { defineCommand } from "@shardjs/core";
 
 export default defineCommand({
@@ -100,7 +95,6 @@ export default defineCommand({
 `;
   fs.writeFileSync(path.join(targetDir, "src/commands/ping.ts"), pingCommand);
 
-  // Write src/events/ready.ts
   const readyEvent = `import { defineEvent } from "@shardjs/core";
 
 export default defineEvent({
@@ -113,7 +107,6 @@ export default defineEvent({
 `;
   fs.writeFileSync(path.join(targetDir, "src/events/ready.ts"), readyEvent);
 
-  // Write src/app/api/health/route.ts
   const healthRoute = `import { defineRoute } from "@shardjs/core";
 
 export const GET = defineRoute(async ({ bot }) => {
@@ -127,7 +120,6 @@ export const GET = defineRoute(async ({ bot }) => {
 `;
   fs.writeFileSync(path.join(targetDir, "src/app/api/health/route.ts"), healthRoute);
 
-  // Write .env.example
   fs.writeFileSync(
     path.join(targetDir, ".env.example"),
     "DISCORD_TOKEN=your_bot_token_here\n"
@@ -137,7 +129,6 @@ export const GET = defineRoute(async ({ bot }) => {
     "DISCORD_TOKEN=your_bot_token_here\n"
   );
 
-  // Write .gitignore
   fs.writeFileSync(
     path.join(targetDir, ".gitignore"),
     "node_modules/\n.shard/\n.env\n.env.local\ndist/\n"

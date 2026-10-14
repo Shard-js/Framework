@@ -28,7 +28,6 @@ export class FileRouter {
   public plugins: ShardPlugin[] = [];
   public apiRouter?: ApiRouter;
 
-  // Track definitions by file path to enable clean HMR deregistrations (Issue #1)
   private fileDefinitions: Map<string, { type: string; key: string }> = new Map();
 
   constructor(rootDir: string = process.cwd(), apiRouter?: ApiRouter) {
@@ -263,10 +262,6 @@ export class FileRouter {
     }
   }
 
-  /**
-   * Reloads a specific file in place (Hot Module Replacement)
-   * Cleans existing definitions from that specific file to prevent duplicate listeners (Issue #1).
-   */
   public async reloadFile(filePath: string): Promise<string | null> {
     const normPath = normalizePath(filePath);
     const existing = this.fileDefinitions.get(normPath);

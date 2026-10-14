@@ -4,7 +4,6 @@ import { ApiRouter, routeToMatcher } from "../src/router.js";
 describe("ApiRouter & routeToMatcher (Security)", () => {
   it("escapes regex metacharacters in static route segments (Issue #14)", () => {
     const { pattern } = routeToMatcher("/api/v1.0");
-    // Should match exact /api/v1.0, not /api/v1x0
     expect(pattern.test("/api/v1.0")).toBe(true);
     expect(pattern.test("/api/v1.0/")).toBe(true);
     expect(pattern.test("/api/v1x0")).toBe(false);
@@ -32,12 +31,10 @@ describe("ApiRouter & routeToMatcher (Security)", () => {
       GET: () => new Response("ok"),
     });
 
-    // Normal matching
     const matchNormal = router.match("/api/files/test.txt", "GET");
     expect(matchNormal).not.toBeNull();
     expect(matchNormal?.params.name).toBe("test.txt");
 
-    // Path traversal attempt: %2F turns into / after decoding
     const matchTraversal = router.match("/api/files/..%2F..%2F.env", "GET");
     expect(matchTraversal).toBeNull();
   });

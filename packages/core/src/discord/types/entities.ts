@@ -1,10 +1,3 @@
-/**
- * Core Discord Entity Types (API v10)
- * https://discord.com/developers/docs/resources/user
- * https://discord.com/developers/docs/resources/guild
- * https://discord.com/developers/docs/resources/channel
- * https://discord.com/developers/docs/resources/message
- */
 
 export interface DiscordUser {
   id: string;
