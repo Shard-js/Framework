@@ -1,10 +1,11 @@
+import { spawn } from "node:child_process";
 import colors from "picocolors";
 import type { ShardPlugin } from "@shardjs/core";
 
 // Module augmentation: adds 'db' to ShardContext across the framework
 declare module "@shardjs/core" {
   interface ShardContext {
-    db: any;
+    db?: any;
   }
 }
 
@@ -12,6 +13,32 @@ export interface DrizzlePluginOptions {
   client?: any;
   schema?: any;
   connectionString?: string;
+  configPath?: string;
+}
+
+export function executeDrizzleKit(action: "migrate" | "push", configPath?: string): Promise<number> {
+  return new Promise((resolve) => {
+    const args = ["exec", "drizzle-kit", action];
+    if (configPath) {
+      args.push("--config", configPath);
+    }
+
+    const proc = spawn("npx", args, {
+      stdio: "inherit",
+      cwd: process.cwd(),
+      shell: process.platform === "win32",
+    });
+
+    proc.on("error", (err) => {
+      console.error(colors.red(`[drizzle] Failed to execute drizzle-kit ${action}: ${err.message}`));
+      console.error(colors.yellow("[drizzle] Ensure 'drizzle-kit' is installed: pnpm add -D drizzle-kit"));
+      resolve(1);
+    });
+
+    proc.on("exit", (code) => {
+      resolve(code ?? 0);
+    });
+  });
 }
 
 /**
@@ -21,9 +48,10 @@ export interface DrizzlePluginOptions {
  * @example
  * ```ts
  * import { drizzlePlugin } from "@shardjs/plugin-drizzle";
+ * import { db } from "./db";
  *
  * export default defineConfig({
- *   plugins: [drizzlePlugin({ schema })],
+ *   plugins: [drizzlePlugin({ client: db })],
  * });
  * ```
  */
@@ -33,36 +61,54 @@ export function drizzlePlugin(options: DrizzlePluginOptions = {}): ShardPlugin {
 
     cli(cmd) {
       cmd
-        .command("db:migrate", "Run Drizzle migrations")
-        .action(async () => {
-          console.log(colors.cyan("📦 [drizzle] Running database migrations..."));
-          // Hook to drizzle-kit or custom migration logic
-          console.log(colors.green("✅ Migrations completed!"));
+        .command("db:migrate", "Run Drizzle migrations via drizzle-kit")
+        .option("-c, --config <path>", "Path to drizzle.config.ts")
+        .action(async (cliOptions: { config?: string }) => {
+          console.log(colors.cyan("[drizzle] Running database migrations via drizzle-kit..."));
+          const config = cliOptions?.config || options.configPath;
+          const exitCode = await executeDrizzleKit("migrate", config);
+          if (exitCode === 0) {
+            console.log(colors.green("[drizzle] Migrations completed successfully."));
+          } else {
+            console.error(colors.red(`[drizzle] Migrations failed with exit code ${exitCode}.`));
+            process.exit(exitCode);
+          }
         });
 
       cmd
-        .command("db:push", "Push Drizzle schema directly to database")
-        .action(async () => {
-          console.log(colors.cyan("📦 [drizzle] Pushing schema to database..."));
-          console.log(colors.green("✅ Schema synced!"));
+        .command("db:push", "Push Drizzle schema directly to database via drizzle-kit")
+        .option("-c, --config <path>", "Path to drizzle.config.ts")
+        .action(async (cliOptions: { config?: string }) => {
+          console.log(colors.cyan("[drizzle] Pushing schema to database via drizzle-kit..."));
+          const config = cliOptions?.config || options.configPath;
+          const exitCode = await executeDrizzleKit("push", config);
+          if (exitCode === 0) {
+            console.log(colors.green("[drizzle] Schema synced successfully."));
+          } else {
+            console.error(colors.red(`[drizzle] Schema push failed with exit code ${exitCode}.`));
+            process.exit(exitCode);
+          }
         });
     },
 
     async setup({ inject }) {
-      const dbClient = options.client || {
-        _isMock: true,
-        async query() {
-          return [];
-        },
-      };
-
-      // Injects db into ShardContext
-      inject("db", dbClient);
-      console.log(colors.green("📦 [shard:plugin-drizzle] Drizzle ORM initialized."));
+      if (options.client) {
+        inject("db", options.client);
+        console.log(colors.green("[shard:plugin-drizzle] Drizzle ORM client injected into ctx.db."));
+      } else {
+        console.warn(
+          colors.yellow(
+            "[shard:plugin-drizzle] Warning: No Drizzle database client was provided to drizzlePlugin({ client }). 'ctx.db' will remain undefined."
+          )
+        );
+      }
     },
 
     async teardown() {
-      // Cleanup connections
+      // Teardown connections if client supports close/end
+      if (options.client && typeof options.client.end === "function") {
+        await options.client.end();
+      }
     },
   };
 }
