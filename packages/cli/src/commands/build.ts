@@ -54,7 +54,27 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "../..");
 
 const { config } = await loadConfig(rootDir);
+if (process.env.PORT && config.api) {
+  const p = Number(process.env.PORT);
+  if (!Number.isNaN(p) && p > 0 && p <= 65535) {
+    config.api.port = p;
+  }
+}
+
 const bot = createBot(config, rootDir);
+
+const shutdown = async () => {
+  try {
+    await bot.stop();
+  } catch (err) {
+    console.error("[shard] Error during graceful shutdown:", err);
+  } finally {
+    process.exit(0);
+  }
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
 
 await bot.start();
 console.log("[shard] Production bot running.");

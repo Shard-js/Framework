@@ -22,6 +22,7 @@ export class RateLimiter {
   private buckets = new Map<string, BucketState>();
   private globalResetTime = 0;
   private routeToBucket = new Map<string, string>();
+  private activeSleepTimers = new Set<() => void>();
 
   /**
    * Normalizes an endpoint path to a route key for rate limiting.
@@ -47,6 +48,15 @@ export class RateLimiter {
     routeKey: string,
     requestFn: () => Promise<{ response: Response; data: T }>
   ): Promise<T> {
+    if (this.buckets.size > 500) {
+      const now = Date.now();
+      for (const [key, b] of this.buckets.entries()) {
+        if (!b.processing && b.queue.length === 0 && now > b.resetTime) {
+          this.buckets.delete(key);
+        }
+      }
+    }
+
     const bucketId = this.routeToBucket.get(routeKey) || routeKey;
 
     let bucket = this.buckets.get(bucketId);
@@ -87,14 +97,22 @@ export class RateLimiter {
       // Check global rate limit
       if (this.globalResetTime > now) {
         const waitMs = this.globalResetTime - now;
-        await this.sleep(waitMs);
+        try {
+          await this.sleep(waitMs);
+        } catch {
+          break;
+        }
         continue;
       }
 
       // Check bucket rate limit
       if (bucket.remaining <= 0 && bucket.resetTime > now) {
         const waitMs = bucket.resetTime - now;
-        await this.sleep(waitMs);
+        try {
+          await this.sleep(waitMs);
+        } catch {
+          break;
+        }
         continue;
       }
 
@@ -162,7 +180,35 @@ export class RateLimiter {
     }
   }
 
+  public clear(): void {
+    for (const cancel of this.activeSleepTimers) {
+      cancel();
+    }
+    this.activeSleepTimers.clear();
+
+    for (const bucket of this.buckets.values()) {
+      for (const item of bucket.queue) {
+        item.reject(new Error("RateLimiter cleared"));
+      }
+      bucket.queue = [];
+      bucket.processing = false;
+    }
+    this.buckets.clear();
+    this.routeToBucket.clear();
+  }
+
   private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.activeSleepTimers.delete(cancel);
+        resolve();
+      }, ms);
+      const cancel = () => {
+        clearTimeout(timer);
+        this.activeSleepTimers.delete(cancel);
+        reject(new Error("RateLimiter cleared"));
+      };
+      this.activeSleepTimers.add(cancel);
+    });
   }
 }

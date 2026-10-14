@@ -60,6 +60,8 @@ export class ApiServer {
 
     return new Promise((resolve, reject) => {
       this.server = http.createServer(async (req, res) => {
+        req.on("error", () => {});
+        res.on("error", () => {});
         try {
           await this.handleRequest(req, res);
         } catch (error: any) {
@@ -90,8 +92,12 @@ export class ApiServer {
   }
 
   public async stop(): Promise<void> {
+    this.ipRateLimits.clear();
     return new Promise((resolve) => {
       if (this.server) {
+        if (typeof (this.server as any).closeAllConnections === "function") {
+          (this.server as any).closeAllConnections();
+        }
         this.server.close(() => {
           this.server = null;
           resolve();
@@ -163,6 +169,15 @@ export class ApiServer {
    */
   private checkRateLimit(req: http.IncomingMessage, res: http.ServerResponse): boolean {
     if (!this.config.rateLimit) return true;
+
+    if (this.ipRateLimits.size > 500) {
+      const currentTime = Date.now();
+      for (const [key, state] of this.ipRateLimits.entries()) {
+        if (currentTime > state.resetTime) {
+          this.ipRateLimits.delete(key);
+        }
+      }
+    }
 
     const ip = req.socket.remoteAddress || "unknown";
     const windowMs = this.config.rateLimit.windowMs ?? 60_000;
@@ -306,6 +321,20 @@ export class ApiServer {
       return;
     }
 
+    if (matched.methodNotAllowed) {
+      const allowed = matched.allowedMethods?.join(", ") || "GET";
+      res.setHeader("Allow", allowed);
+      res.writeHead(405, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: "Method Not Allowed",
+          message: `Method ${req.method} not allowed on ${fullUrl.pathname}`,
+          allowedMethods: matched.allowedMethods,
+        })
+      );
+      return;
+    }
+
     // Enforce payload limit on Content-Length (Issue #5)
     const maxBodySize = this.config.maxBodySize ?? 1_048_576; // 1 MB
     const contentLength = req.headers["content-length"];
@@ -330,11 +359,42 @@ export class ApiServer {
       url: fullUrl,
     };
 
-    // Execute route handler
-    const response = await matched.handler(ctx);
-
-    // Pipe Web Response to Node ServerResponse
-    await this.sendWebResponse(res, response);
+    // Execute route handler with central error handling
+    try {
+      const response = await matched.handler!(ctx);
+      if (!(response instanceof Response)) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error: "Internal Server Error",
+            message: "Route handler must return a Web Standard Response instance.",
+          })
+        );
+        return;
+      }
+      await this.sendWebResponse(res, response, req.method);
+    } catch (err: any) {
+      if (err?.message === "PAYLOAD_TOO_LARGE" || err?.message?.includes("Payload Too Large")) {
+        if (!res.headersSent) {
+          res.writeHead(413, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Payload Too Large", maxBytes: maxBodySize }));
+        }
+        return;
+      }
+      const status =
+        typeof err?.status === "number" && err.status >= 400 && err.status < 600
+          ? err.status
+          : 500;
+      if (!res.headersSent) {
+        res.writeHead(status, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error: status === 500 ? "Internal Server Error" : "Error",
+            message: err?.message || "An unexpected error occurred",
+          })
+        );
+      }
+    }
   }
 
   private toWebRequest(
@@ -380,6 +440,9 @@ export class ApiServer {
       },
     });
 
+    req.on("error", (err) => {
+      limiter.destroy(err);
+    });
     req.pipe(limiter);
 
     limiter.on("error", () => {
@@ -403,7 +466,8 @@ export class ApiServer {
 
   private async sendWebResponse(
     res: http.ServerResponse,
-    response: Response
+    response: Response,
+    method = "GET"
   ): Promise<void> {
     res.statusCode = response.status;
     res.statusMessage = response.statusText;
@@ -412,7 +476,7 @@ export class ApiServer {
       res.setHeader(key, value);
     });
 
-    if (!response.body) {
+    if (method.toUpperCase() === "HEAD" || !response.body) {
       res.end();
       return;
     }
@@ -428,12 +492,15 @@ export class ApiServer {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        if (value) {
+        if (value && !res.destroyed && !res.writableEnded) {
           res.write(Buffer.from(value));
         }
       }
+    } catch {
     } finally {
-      res.end();
+      if (!res.writableEnded && !res.destroyed) {
+        res.end();
+      }
     }
   }
 }

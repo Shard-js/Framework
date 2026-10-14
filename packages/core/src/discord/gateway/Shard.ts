@@ -58,6 +58,7 @@ export class Shard extends EventEmitter {
   // Reconnection backoff
   private reconnectAttempts = 0;
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private invalidSessionTimer: NodeJS.Timeout | null = null;
 
   constructor(options: ShardOptions) {
     super();
@@ -126,8 +127,8 @@ export class Shard extends EventEmitter {
   }
 
   public destroy(): void {
-    this.status = ShardStatus.Destroyed;
     this.disconnect();
+    this.status = ShardStatus.Destroyed;
     this.removeAllListeners();
   }
 
@@ -189,7 +190,8 @@ export class Shard extends EventEmitter {
           this.seq = null;
         }
         // Discord docs: wait a random 1-5 seconds before reconnecting
-        setTimeout(() => {
+        this.invalidSessionTimer = setTimeout(() => {
+          this.invalidSessionTimer = null;
           this.reconnect(resumable);
         }, Math.floor(Math.random() * 4000) + 1000);
         break;
@@ -310,6 +312,7 @@ export class Shard extends EventEmitter {
   }
 
   private reconnect(resume = true): void {
+    if (this.status === ShardStatus.Destroyed) return;
     if (!resume) {
       this.sessionId = null;
       this.resumeGatewayUrl = null;
@@ -328,6 +331,7 @@ export class Shard extends EventEmitter {
   }
 
   private scheduleReconnect(): void {
+    if (this.status === ShardStatus.Destroyed) return;
     this.status = ShardStatus.Reconnecting;
     this.reconnectAttempts++;
     const delay = Math.min(1000 * Math.pow(2, Math.min(this.reconnectAttempts - 1, 5)), 30_000);
@@ -349,6 +353,10 @@ export class Shard extends EventEmitter {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+    }
+    if (this.invalidSessionTimer) {
+      clearTimeout(this.invalidSessionTimer);
+      this.invalidSessionTimer = null;
     }
   }
 }

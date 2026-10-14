@@ -76,9 +76,11 @@ function safeDecode(v: string): string | null {
 
 export interface MatchResult {
   route: ApiRoute;
-  handler: RouteHandler;
+  handler?: RouteHandler;
   params: Record<string, string>;
   malformed?: boolean;
+  methodNotAllowed?: boolean;
+  allowedMethods?: string[];
 }
 
 export class ApiRouter {
@@ -116,35 +118,75 @@ export class ApiRouter {
   }
 
   public match(pathname: string, method: string): MatchResult | null {
+    const upperMethod = method.toUpperCase();
+    let matchedPathRoute: ApiRoute | null = null;
+    let matchedPathParams: Record<string, string> = {};
+
     for (const route of this.routes) {
       const match = route.pattern.exec(pathname);
       if (match) {
-        const handler = route.methods[method.toUpperCase()];
-        if (typeof handler === "function") {
-          const params: Record<string, string> = {};
-          if (match.groups) {
-            for (const [key, value] of Object.entries(match.groups)) {
-              if (value !== undefined) {
-                const decoded = safeDecode(value);
-                // Malformed percent-encoding returns malformed flag for 400 Bad Request (Fix #12)
-                if (decoded === null) {
-                  return { route, handler, params: {}, malformed: true };
-                }
+        const params: Record<string, string> = {};
+        let isMalformed = false;
+        let isPathTraversal = false;
 
-                // If not catch-all, single segment must not contain slashes (Fix #12: %2F path traversal)
-                const isCatchAll = route.catchAll.has(key);
-                if (!isCatchAll && /[\/\\]/.test(decoded)) {
-                  return null;
-                }
-
-                params[key] = decoded;
+        if (match.groups) {
+          for (const [key, value] of Object.entries(match.groups)) {
+            if (value !== undefined) {
+              const decoded = safeDecode(value);
+              // Malformed percent-encoding returns malformed flag for 400 Bad Request (Fix #12)
+              if (decoded === null) {
+                isMalformed = true;
+                break;
               }
+
+              // If not catch-all, single segment must not contain slashes (Fix #12: %2F path traversal)
+              const isCatchAll = route.catchAll.has(key);
+              if (!isCatchAll && /[\/\\]/.test(decoded)) {
+                isPathTraversal = true;
+                break;
+              }
+
+              params[key] = decoded;
             }
           }
+        }
+
+        if (isMalformed) {
+          return { route, params: {}, malformed: true };
+        }
+        if (isPathTraversal) {
+          continue;
+        }
+
+        let handler = route.methods[upperMethod];
+        if (!handler && upperMethod === "HEAD" && typeof route.methods.GET === "function") {
+          handler = route.methods.GET;
+        }
+
+        if (typeof handler === "function") {
           return { route, handler, params };
+        }
+
+        if (!matchedPathRoute) {
+          matchedPathRoute = route;
+          matchedPathParams = params;
         }
       }
     }
+
+    if (matchedPathRoute) {
+      const allowedMethods = Object.keys(matchedPathRoute.methods);
+      if (allowedMethods.includes("GET") && !allowedMethods.includes("HEAD")) {
+        allowedMethods.push("HEAD");
+      }
+      return {
+        route: matchedPathRoute,
+        params: matchedPathParams,
+        methodNotAllowed: true,
+        allowedMethods,
+      };
+    }
+
     return null;
   }
 

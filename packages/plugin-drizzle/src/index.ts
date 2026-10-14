@@ -17,6 +17,10 @@ export interface DrizzlePluginOptions {
 }
 
 export function executeDrizzleKit(action: "migrate" | "push", configPath?: string): Promise<number> {
+  if (configPath && !/^[a-zA-Z0-9_./\\-]+$/.test(configPath)) {
+    throw new Error(`[drizzle] Invalid config path containing illegal characters: "${configPath}"`);
+  }
+
   return new Promise((resolve) => {
     const args = ["exec", "drizzle-kit", action];
     if (configPath) {
@@ -106,8 +110,14 @@ export function drizzlePlugin(options: DrizzlePluginOptions = {}): ShardPlugin {
 
     async teardown() {
       // Teardown connections if client supports close/end
-      if (options.client && typeof options.client.end === "function") {
-        await options.client.end();
+      if (options.client) {
+        if (typeof options.client.end === "function") {
+          await options.client.end();
+        } else if (typeof options.client.$client?.end === "function") {
+          await options.client.$client.end();
+        } else if (typeof options.client.destroy === "function") {
+          await options.client.destroy();
+        }
       }
     },
   };

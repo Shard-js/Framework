@@ -189,6 +189,19 @@ function setupEventProxy(
         const ctx: EventContext = {
           ...context,
           bot: client,
+          client: client,
+          get user() {
+            return client.user;
+          },
+          get guilds() {
+            return client.guilds;
+          },
+          get channels() {
+            return client.channels;
+          },
+          get users() {
+            return client.users;
+          },
           event: camelEvent,
           args,
         };
@@ -287,9 +300,27 @@ async function handleCommandInteraction(
     options: interaction.options,
   };
 
-  await composeMiddlewares(pipeline, cmdContext, async (ctx) => {
-    await command.run(ctx);
-  });
+  try {
+    await composeMiddlewares(pipeline, cmdContext, async (ctx) => {
+      await command.run(ctx);
+    });
+  } catch (err: any) {
+    console.error(colors.red(`[shard] Error executing command "/${command.name}":`), err);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction
+        .reply({
+          content: "❌ An unexpected error occurred while executing this command.",
+          ephemeral: true,
+        })
+        .catch(() => {});
+    } else if (interaction.deferred && !interaction.replied) {
+      await interaction
+        .editReply({
+          content: "❌ An unexpected error occurred while executing this command.",
+        })
+        .catch(() => {});
+    }
+  }
 }
 
 async function handleAutocompleteInteraction(
@@ -305,7 +336,11 @@ async function handleAutocompleteInteraction(
       ...context,
       interaction,
     };
-    await command.autocomplete(autoContext);
+    try {
+      await command.autocomplete(autoContext);
+    } catch (err: any) {
+      console.error(colors.red(`[shard] Error in autocomplete for "/${commandName}":`), err);
+    }
   }
 }
 
@@ -327,7 +362,25 @@ async function handleComponentInteraction(
         ...context,
         interaction,
       };
-      await compDef.run(compContext);
+      try {
+        await compDef.run(compContext);
+      } catch (err: any) {
+        console.error(colors.red(`[shard] Error executing component "${customId}":`), err);
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction
+            .reply({
+              content: "❌ An unexpected error occurred while handling this component.",
+              ephemeral: true,
+            })
+            .catch(() => {});
+        } else if (interaction.deferred && !interaction.replied) {
+          await interaction
+            .editReply({
+              content: "❌ An unexpected error occurred while handling this component.",
+            })
+            .catch(() => {});
+        }
+      }
       return;
     }
   }
@@ -351,7 +404,25 @@ async function handleModalInteraction(
         ...context,
         interaction,
       };
-      await modalDef.run(modalContext);
+      try {
+        await modalDef.run(modalContext);
+      } catch (err: any) {
+        console.error(colors.red(`[shard] Error executing modal "${customId}":`), err);
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction
+            .reply({
+              content: "❌ An unexpected error occurred while processing this modal submission.",
+              ephemeral: true,
+            })
+            .catch(() => {});
+        } else if (interaction.deferred && !interaction.replied) {
+          await interaction
+            .editReply({
+              content: "❌ An unexpected error occurred while processing this modal submission.",
+            })
+            .catch(() => {});
+        }
+      }
       return;
     }
   }

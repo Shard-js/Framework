@@ -44,4 +44,9 @@ describe("Docker Security & Hardening (Issues #6 & #15)", () => {
     expect(DOCKERFILE_CONTENT).toContain("--chown=node:node");
     expect(DOCKERFILE_CONTENT).toContain("CMD [\"node\", \".shard/dist/runner.js\"]");
   });
+
+  it("ensures Dockerfile contains native HTTP healthcheck", () => {
+    expect(DOCKERFILE_CONTENT).toContain("HEALTHCHECK");
+    expect(DOCKERFILE_CONTENT).toContain("/api/health");
+  });
 });

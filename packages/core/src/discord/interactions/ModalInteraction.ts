@@ -21,6 +21,7 @@ export class ModalInteraction {
   public fields: ModalFieldsResolver;
 
   public replied = false;
+  public deferred = false;
   private rest: RestClient;
 
   constructor(interaction: DiscordInteraction, rest: RestClient) {
@@ -55,6 +56,37 @@ export class ModalInteraction {
       auth: false,
     });
     this.replied = true;
+  }
+
+  public async deferReply(options?: { ephemeral?: boolean }): Promise<void> {
+    if (this.replied || this.deferred) return;
+    let flags = 0;
+    if (options?.ephemeral) {
+      flags |= MessageFlags.Ephemeral;
+    }
+    await this.rest.post(Endpoints.interactionCallback(this.id, this.token), {
+      body: {
+        type: InteractionResponseType.DeferredChannelMessageWithSource,
+        data: flags > 0 ? { flags } : undefined,
+      },
+      auth: false,
+    });
+    this.deferred = true;
+  }
+
+  public async editReply(options: string | InteractionReplyOptions): Promise<any> {
+    const payload = typeof options === "string" ? { content: options } : options;
+    const body: any = { ...payload };
+    if (payload.ephemeral) {
+      body.flags = MessageFlags.Ephemeral;
+    }
+    return this.rest.patch(
+      Endpoints.originalInteractionResponse(this.applicationId, this.token),
+      {
+        body,
+        auth: false,
+      }
+    );
   }
 }
 

@@ -45,6 +45,10 @@ export class RestClient {
     return this.token;
   }
 
+  public destroy(): void {
+    this.rateLimiter.clear();
+  }
+
   public async get<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     return this.request<T>("GET", endpoint, options);
   }

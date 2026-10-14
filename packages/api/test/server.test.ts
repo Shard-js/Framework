@@ -189,4 +189,99 @@ describe("ApiServer (Security Hardening)", () => {
     const json: any = await validRes.json();
     expect(json.data).toBe("top secret");
   });
+
+  it("returns 405 Method Not Allowed with Allow header when path matches but method does not", async () => {
+    server = new ApiServer({ port: 0 });
+    server.router.register("users/route.ts", {
+      GET: () => Response.json([{ id: 1 }]),
+      POST: () => Response.json({ created: true }),
+    });
+
+    const { port, host } = await server.start();
+    const url = `http://${host}:${port}/api/users`;
+
+    const res = await fetch(url, { method: "DELETE" });
+    expect(res.status).toBe(405);
+    const allowHeader = res.headers.get("allow") || "";
+    expect(allowHeader).toContain("GET");
+    expect(allowHeader).toContain("POST");
+    const body: any = await res.json();
+    expect(body.error).toBe("Method Not Allowed");
+  });
+
+  it("supports HEAD requests transparently using GET handler without response body", async () => {
+    server = new ApiServer({ port: 0 });
+    server.router.register("info/route.ts", {
+      GET: () => new Response("Hello World", { headers: { "X-Custom": "test-header" } }),
+    });
+
+    const { port, host } = await server.start();
+    const url = `http://${host}:${port}/api/info`;
+
+    const res = await fetch(url, { method: "HEAD" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-custom")).toBe("test-header");
+    const text = await res.text();
+    expect(text).toBe("");
+  });
+
+  it("returns 500 JSON without crashing when handler returns non-Response", async () => {
+    server = new ApiServer({ port: 0 });
+    server.router.register("bad/route.ts", {
+      // @ts-expect-error Intentionally invalid return
+      GET: () => ({ message: "forgot to wrap in Response" }),
+    });
+
+    const { port, host } = await server.start();
+    const url = `http://${host}:${port}/api/bad`;
+
+    const res = await fetch(url);
+    expect(res.status).toBe(500);
+    const body: any = await res.json();
+    expect(body.error).toBe("Internal Server Error");
+    expect(body.message).toContain("Route handler must return a Web Standard Response instance.");
+  });
+
+  it("maps custom thrown errors with status property to corresponding HTTP status code", async () => {
+    server = new ApiServer({ port: 0 });
+    server.router.register("custom-err/route.ts", {
+      GET: () => {
+        const err: any = new Error("Custom forbidden access");
+        err.status = 403;
+        throw err;
+      },
+    });
+
+    const { port, host } = await server.start();
+    const url = `http://${host}:${port}/api/custom-err`;
+
+    const res = await fetch(url);
+    expect(res.status).toBe(403);
+    const body: any = await res.json();
+    expect(body.message).toBe("Custom forbidden access");
+  });
+
+  it("cleans rate limit state upon server.stop()", async () => {
+    server = new ApiServer({
+      port: 0,
+      rateLimit: {
+        windowMs: 50,
+        max: 2,
+      },
+    });
+    server.router.register("rl/route.ts", {
+      GET: () => Response.json({ ok: true }),
+    });
+
+    const { port, host } = await server.start();
+    const url = `http://${host}:${port}/api/rl`;
+
+    await fetch(url);
+    await fetch(url);
+    const limited = await fetch(url);
+    expect(limited.status).toBe(429);
+
+    await server.stop();
+    server = null;
+  });
 });

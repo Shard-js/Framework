@@ -45,6 +45,10 @@ COPY --from=builder --chown=node:node /app/shard.config.* /app/
 USER node
 
 EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
 CMD ["node", ".shard/dist/runner.js"]
 `;
 
@@ -91,6 +95,11 @@ export async function runDockerBuild(tag = "shard-bot:latest"): Promise<void> {
     cwd: rootDir,
   });
 
+  proc.on("error", (err) => {
+    console.error(colors.red(`[shard:docker] Failed to execute docker: ${err.message}`));
+    process.exit(1);
+  });
+
   proc.on("exit", (code) => {
     if (code === 0) {
       console.log(colors.green(`\n✅ Docker image '${tag}' built successfully!`));
@@ -118,6 +127,11 @@ export async function runDockerRun(
       cwd: process.cwd(),
     }
   );
+
+  proc.on("error", (err) => {
+    console.error(colors.red(`[shard:docker] Failed to execute docker: ${err.message}`));
+    process.exit(1);
+  });
 
   proc.on("exit", (code) => {
     process.exit(code ?? 0);

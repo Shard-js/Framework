@@ -93,10 +93,12 @@ export class Client extends EventEmitter {
 
   public async destroy(): Promise<void> {
     this.ready = false;
+    this.rest.destroy();
     this.shardManager.destroy();
     this.guilds.destroy();
     this.channels.destroy();
     this.users.destroy();
+    this.removeAllListeners();
   }
 
   private setupGatewayListeners(): void {

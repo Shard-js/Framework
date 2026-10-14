@@ -62,8 +62,9 @@ export async function runDev(options: DevCommandOptions = {}): Promise<void> {
   });
 
   // Watch shard.config.ts
+  let configWatcher: ReturnType<typeof chokidar.watch> | null = null;
   if (configPath) {
-    const configWatcher = chokidar.watch(configPath, { ignoreInitial: true });
+    configWatcher = chokidar.watch(configPath, { ignoreInitial: true });
     configWatcher.on("change", () => {
       console.log(
         colors.yellow("\n⚠️ [shard] Config file changed. Please restart 'shard dev' to apply root config changes.")
@@ -74,7 +75,8 @@ export async function runDev(options: DevCommandOptions = {}): Promise<void> {
   // Graceful shutdown
   const shutdown = async () => {
     console.log(colors.yellow("\n🛑 Stopping shard dev server..."));
-    await watcher.close();
+    if (watcher) await watcher.close();
+    if (configWatcher) await configWatcher.close();
     await bot.stop();
     process.exit(0);
   };

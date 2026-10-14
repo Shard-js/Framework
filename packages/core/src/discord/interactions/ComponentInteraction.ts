@@ -97,6 +97,17 @@ export class ComponentInteraction {
     this.deferred = true;
   }
 
+  public async editReply(options: string | InteractionReplyOptions): Promise<any> {
+    const payload = this.normalizeReplyOptions(options);
+    return this.rest.patch(
+      Endpoints.originalInteractionResponse(this.applicationId, this.token),
+      {
+        body: payload,
+        auth: false,
+      }
+    );
+  }
+
   private normalizeReplyOptions(options: string | InteractionReplyOptions): any {
     if (typeof options === "string") return { content: options };
 

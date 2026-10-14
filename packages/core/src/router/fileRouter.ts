@@ -81,6 +81,7 @@ export class FileRouter {
   }
 
   public async loadCommands(): Promise<void> {
+    this.commands.clear();
     const commandsDir = path.join(this.srcDir, "commands");
     const files = this.getFilesRecursively(commandsDir);
 
@@ -108,6 +109,7 @@ export class FileRouter {
   }
 
   public async loadEvents(): Promise<void> {
+    this.events.clear();
     const eventsDir = path.join(this.srcDir, "events");
     const files = this.getFilesRecursively(eventsDir);
 
@@ -120,11 +122,12 @@ export class FileRouter {
             eventDef.event = baseName;
           }
           eventDef.filePath = file;
+          const normFile = normalizePath(file);
 
           const list = this.events.get(eventDef.event) || [];
           list.push(eventDef);
           this.events.set(eventDef.event, list);
-          this.fileDefinitions.set(normalizePath(file), { type: "event", key: eventDef.event });
+          this.fileDefinitions.set(normFile, { type: "event", key: eventDef.event });
         }
       } catch (err: any) {
         console.error(
@@ -136,6 +139,7 @@ export class FileRouter {
   }
 
   public async loadMiddlewares(): Promise<void> {
+    this.middlewares.clear();
     const mwDir = path.join(this.srcDir, "middleware");
     const files = this.getFilesRecursively(mwDir);
 
@@ -160,6 +164,7 @@ export class FileRouter {
   }
 
   public async loadComponents(): Promise<void> {
+    this.components.clear();
     const compDir = path.join(this.srcDir, "components");
     const files = this.getFilesRecursively(compDir);
 
@@ -182,6 +187,7 @@ export class FileRouter {
   }
 
   public async loadModals(): Promise<void> {
+    this.modals.clear();
     const modalDir = path.join(this.srcDir, "modals");
     const files = this.getFilesRecursively(modalDir);
 
@@ -205,6 +211,7 @@ export class FileRouter {
 
   public async loadApiRoutes(): Promise<void> {
     if (!this.apiRouter) return;
+    this.apiRouter.clear();
     const apiDir = path.join(this.srcDir, "app", "api");
     const files = this.getFilesRecursively(apiDir, /route\.(ts|js|mjs)$/);
 
@@ -237,6 +244,7 @@ export class FileRouter {
   }
 
   public async loadPlugins(): Promise<void> {
+    this.plugins = [];
     const pluginsDir = path.join(this.srcDir, "plugins");
     const files = this.getFilesRecursively(pluginsDir);
 
