@@ -35,8 +35,11 @@ export async function runCli(argv = process.argv): Promise<void> {
 
   cli
     .command("create [name]", "Create a new shard Discord bot project")
-    .action(async (name) => {
-      await runCreate(name);
+    .option("-t, --template <template>", "Project template: minimal | api-drizzle | moderation", {
+      default: "minimal",
+    })
+    .action(async (name, options) => {
+      await runCreate(name, options);
     });
 
   cli
