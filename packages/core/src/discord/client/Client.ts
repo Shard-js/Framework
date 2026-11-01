@@ -154,7 +154,6 @@ export class Client extends EventEmitter {
       default:
         const camelEvent = this.toCamelCase(event);
         this.emit(camelEvent, data);
-        this.emit(event, data);
         break;
     }
   }
