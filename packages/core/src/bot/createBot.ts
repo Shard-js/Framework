@@ -237,12 +237,12 @@ async function handleCommandInteraction(
   router: FileRouter,
   context: ShardContext
 ): Promise<void> {
-  const commandName = interaction.commandName.toLowerCase();
-  const command = router.commands.get(commandName);
+  const command = router.getCommand(interaction.commandName, interaction.commandType);
 
   if (!command) {
+    const prefix = interaction.isContextMenu() ? "" : "/";
     await interaction.reply({
-      content: `❌ Unknown command: \`/${interaction.commandName}\``,
+      content: `❌ Unknown command: \`${prefix}${interaction.commandName}\``,
       ephemeral: true,
     });
     return;

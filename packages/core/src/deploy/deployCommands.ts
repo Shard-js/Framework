@@ -2,7 +2,10 @@ import colors from "picocolors";
 import { RestClient } from "../discord/rest/RestClient.js";
 import { Endpoints } from "../discord/rest/Endpoints.js";
 import { PermissionsBitField } from "../discord/types/permissions.js";
-import { ApplicationCommandOptionType } from "../discord/types/interactions.js";
+import {
+  ApplicationCommandOptionType,
+  ApplicationCommandType,
+} from "../discord/types/interactions.js";
 import type {
   CommandDefinition,
   CommandOptionDefinition,
@@ -24,11 +27,39 @@ const OPTION_TYPE_MAP: Record<CommandOptionType, number> = {
   Attachment: ApplicationCommandOptionType.Attachment,
 };
 
+export function resolveCommandType(
+  type?: ApplicationCommandType | "ChatInput" | "User" | "Message" | number
+): ApplicationCommandType {
+  if (type === undefined) return ApplicationCommandType.ChatInput;
+  if (typeof type === "number") return type as ApplicationCommandType;
+  if (type === "User") return ApplicationCommandType.User;
+  if (type === "Message") return ApplicationCommandType.Message;
+  return ApplicationCommandType.ChatInput;
+}
+
 export function commandToDiscordJson(cmd: CommandDefinition): any {
+  const cmdType = resolveCommandType(cmd.type);
   const json: any = {
     name: cmd.name,
-    description: cmd.description,
   };
+
+  if (cmdType !== ApplicationCommandType.ChatInput) {
+    json.type = cmdType;
+  } else {
+    json.description = cmd.description || "";
+  }
+
+  const nameLocs = cmd.nameLocalizations || cmd.name_localizations;
+  if (nameLocs) json.name_localizations = nameLocs;
+
+  const descLocs = cmd.descriptionLocalizations || cmd.description_localizations;
+  if (descLocs && cmdType === ApplicationCommandType.ChatInput) {
+    json.description_localizations = descLocs;
+  }
+
+  if (cmd.nsfw !== undefined) {
+    json.nsfw = Boolean(cmd.nsfw);
+  }
 
   if (cmd.guildOnly !== undefined) {
     json.dm_permission = !cmd.guildOnly;
@@ -42,7 +73,7 @@ export function commandToDiscordJson(cmd: CommandDefinition): any {
     ).toString();
   }
 
-  if (cmd.options && cmd.options.length > 0) {
+  if (cmdType === ApplicationCommandType.ChatInput && cmd.options && cmd.options.length > 0) {
     json.options = cmd.options.map((opt) => transformOption(opt));
   }
 
@@ -57,6 +88,12 @@ function transformOption(opt: CommandOptionDefinition): any {
     description: opt.description,
   };
 
+  const nameLocs = opt.nameLocalizations ?? opt.name_localizations;
+  if (nameLocs) json.name_localizations = nameLocs;
+
+  const descLocs = opt.descriptionLocalizations ?? opt.description_localizations;
+  if (descLocs) json.description_localizations = descLocs;
+
   if (
     opt.type !== "Subcommand" &&
     opt.type !== "SubcommandGroup"
@@ -68,6 +105,23 @@ function transformOption(opt: CommandOptionDefinition): any {
         name: c.name,
         value: c.value,
       }));
+    }
+
+    const minValue = opt.minValue ?? opt.min_value;
+    if (minValue !== undefined) json.min_value = minValue;
+
+    const maxValue = opt.maxValue ?? opt.max_value;
+    if (maxValue !== undefined) json.max_value = maxValue;
+
+    const minLength = opt.minLength ?? opt.min_length;
+    if (minLength !== undefined) json.min_length = minLength;
+
+    const maxLength = opt.maxLength ?? opt.max_length;
+    if (maxLength !== undefined) json.max_length = maxLength;
+
+    const channelTypes = opt.channelTypes ?? opt.channel_types;
+    if (channelTypes && Array.isArray(channelTypes)) {
+      json.channel_types = channelTypes;
     }
   }
 

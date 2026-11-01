@@ -3,6 +3,8 @@ import path from "node:path";
 import colors from "picocolors";
 import type { ApiRouter } from "@shardjs/api";
 import { importModule } from "../utils/moduleLoader.js";
+import { ApplicationCommandType } from "../discord/types/interactions.js";
+import { resolveCommandType } from "../deploy/deployCommands.js";
 import type {
   CommandDefinition,
   EventDefinition,
@@ -36,6 +38,18 @@ export class FileRouter {
   public apiRouter?: ApiRouter;
 
   private fileDefinitions: Map<string, { type: string; key: string }> = new Map();
+
+  public getCommand(
+    name: string,
+    type: ApplicationCommandType = ApplicationCommandType.ChatInput
+  ): CommandDefinition | undefined {
+    const lower = name.toLowerCase();
+    if (type !== ApplicationCommandType.ChatInput) {
+      const specific = this.commands.get(`${type}:${lower}`);
+      if (specific) return specific;
+    }
+    return this.commands.get(lower);
+  }
 
   constructor(
     rootDir: string = process.cwd(),
@@ -108,13 +122,40 @@ export class FileRouter {
       try {
         const commandDef: CommandDefinition = await this.importModule(file);
         if (commandDef && typeof commandDef.run === "function") {
+          const rel = path.relative(commandsDir, file).replace(/\\/g, "/");
+          const base = rel.replace(/\.(ts|js|mjs)$/, "");
+
+          if (
+            (rel.startsWith("user/") || rel.startsWith("users/")) &&
+            !commandDef.type
+          ) {
+            commandDef.type = ApplicationCommandType.User;
+          } else if (
+            (rel.startsWith("message/") || rel.startsWith("messages/")) &&
+            !commandDef.type
+          ) {
+            commandDef.type = ApplicationCommandType.Message;
+          }
+
           if (!commandDef.name) {
-            const rel = path.relative(commandsDir, file);
-            const base = rel.replace(/\.(ts|js|mjs)$/, "");
-            commandDef.name = base.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            const fileName = path.basename(base);
+            if (
+              commandDef.type &&
+              resolveCommandType(commandDef.type) !== ApplicationCommandType.ChatInput
+            ) {
+              commandDef.name = fileName;
+            } else {
+              commandDef.name = base.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            }
           }
           commandDef.filePath = file;
-          const key = commandDef.name.toLowerCase();
+
+          const cmdType = resolveCommandType(commandDef.type);
+          const key =
+            cmdType !== ApplicationCommandType.ChatInput
+              ? `${cmdType}:${commandDef.name.toLowerCase()}`
+              : commandDef.name.toLowerCase();
+
           this.commands.set(key, commandDef);
           this.fileDefinitions.set(normalizePath(file), { type: "command", key });
         }

@@ -24,7 +24,10 @@ export async function runDeploy(options: DeployCliOptions = {}): Promise<void> {
 
   console.log(colors.gray(`Found ${commandList.length} command(s):`));
   for (const cmd of commandList) {
-    console.log(colors.gray(`  • /${cmd.name} - ${cmd.description}`));
+    const isContext = cmd.type && cmd.type !== 1;
+    const typeLabel = cmd.type === 2 ? "[User] " : cmd.type === 3 ? "[Message] " : "/";
+    const desc = cmd.description ? ` - ${cmd.description}` : "";
+    console.log(colors.gray(`  • ${typeLabel}${cmd.name}${desc}`));
   }
   console.log("");
 

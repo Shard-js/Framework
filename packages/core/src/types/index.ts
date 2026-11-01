@@ -6,6 +6,7 @@ import type {
   AutocompleteInteraction,
   ComponentInteraction,
   ModalInteraction,
+  ApplicationCommandType,
 } from "../discord/interactions/index.js";
 import type { GatewayIntentBits } from "../discord/types/gateway.js";
 import type { PermissionResolvable } from "../discord/types/permissions.js";
@@ -61,15 +62,35 @@ export interface CommandOptionDefinition {
   choices?: CommandOptionChoice[];
   autocomplete?: boolean;
   options?: readonly CommandOptionDefinition[] | CommandOptionDefinition[];
+  minValue?: number;
+  min_value?: number;
+  maxValue?: number;
+  max_value?: number;
+  minLength?: number;
+  min_length?: number;
+  maxLength?: number;
+  max_length?: number;
+  channelTypes?: number[];
+  channel_types?: number[];
+  nameLocalizations?: Record<string, string>;
+  name_localizations?: Record<string, string>;
+  descriptionLocalizations?: Record<string, string>;
+  description_localizations?: Record<string, string>;
 }
 
 export interface CommandDefinition<TOptions = any> {
   name: string;
-  description: string;
+  description?: string;
+  type?: ApplicationCommandType | "ChatInput" | "User" | "Message" | number;
   options?: readonly CommandOptionDefinition[] | CommandOptionDefinition[];
   guildOnly?: boolean;
   defaultMemberPermissions?: PermissionResolvable;
   dmPermission?: boolean;
+  nsfw?: boolean;
+  nameLocalizations?: Record<string, string>;
+  name_localizations?: Record<string, string>;
+  descriptionLocalizations?: Record<string, string>;
+  description_localizations?: Record<string, string>;
   middleware?: (string | MiddlewareDefinition)[];
   run: (ctx: CommandContext<TOptions>) => Promise<any> | any;
   autocomplete?: (ctx: AutocompleteContext) => Promise<any> | any;

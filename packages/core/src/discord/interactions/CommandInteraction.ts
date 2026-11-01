@@ -1,13 +1,14 @@
 import {
   InteractionResponseType,
   MessageFlags,
+  ApplicationCommandType,
   type DiscordInteraction,
   type DiscordInteractionDataOption,
   type InteractionReplyOptions,
   type DiscordModal,
 } from "../types/interactions.js";
 import type { ModalBuilder } from "../builders/ComponentBuilders.js";
-import type { DiscordUser, DiscordMember } from "../types/entities.js";
+import type { DiscordUser, DiscordMember, DiscordMessage } from "../types/entities.js";
 import { PermissionsBitField } from "../types/permissions.js";
 import type { RestClient } from "../rest/RestClient.js";
 import { Endpoints } from "../rest/Endpoints.js";
@@ -18,6 +19,8 @@ export class CommandInteraction {
   public applicationId: string;
   public token: string;
   public commandName: string;
+  public commandType: ApplicationCommandType;
+  public targetId?: string;
   public user: DiscordUser;
   public member?: DiscordMember;
   public guildId?: string;
@@ -36,6 +39,8 @@ export class CommandInteraction {
     this.applicationId = interaction.application_id;
     this.token = interaction.token;
     this.commandName = interaction.data?.name || "";
+    this.commandType = interaction.data?.type ?? ApplicationCommandType.ChatInput;
+    this.targetId = interaction.data?.target_id;
     this.user = interaction.user || interaction.member?.user!;
     this.member = interaction.member;
     this.guildId = interaction.guild_id;
@@ -52,7 +57,42 @@ export class CommandInteraction {
   }
 
   public isChatInputCommand(): this is CommandInteraction {
-    return true;
+    return !this.commandType || this.commandType === ApplicationCommandType.ChatInput;
+  }
+
+  public isUserContextMenu(): this is CommandInteraction {
+    return this.commandType === ApplicationCommandType.User;
+  }
+
+  public isMessageContextMenu(): this is CommandInteraction {
+    return this.commandType === ApplicationCommandType.Message;
+  }
+
+  public isContextMenu(): this is CommandInteraction {
+    return this.isUserContextMenu() || this.isMessageContextMenu();
+  }
+
+  public getTargetUser(): (DiscordUser & { tag: string }) | null {
+    if (!this.targetId || !this.raw.data?.resolved?.users) return null;
+    const user = this.raw.data.resolved.users[this.targetId];
+    if (!user) return null;
+    return {
+      ...user,
+      tag:
+        user.discriminator && user.discriminator !== "0"
+          ? `${user.username}#${user.discriminator}`
+          : user.username,
+    };
+  }
+
+  public getTargetMember(): DiscordMember | null {
+    if (!this.targetId || !this.raw.data?.resolved?.members) return null;
+    return this.raw.data.resolved.members[this.targetId] || null;
+  }
+
+  public getTargetMessage(): DiscordMessage | null {
+    if (!this.targetId || !this.raw.data?.resolved?.messages) return null;
+    return this.raw.data.resolved.messages[this.targetId] || null;
   }
 
   public isAutocomplete(): boolean {
