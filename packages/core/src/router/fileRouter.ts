@@ -34,6 +34,7 @@ export class FileRouter {
   public middlewares: Map<string, MiddlewareDefinition> = new Map();
   public components: Map<string, ComponentDefinition> = new Map();
   public modals: Map<string, ModalDefinition> = new Map();
+  public directoryMiddlewares: Map<string, MiddlewareDefinition[]> = new Map();
   public plugins: ShardPlugin[] = [];
   public apiRouter?: ApiRouter;
 
@@ -49,6 +50,70 @@ export class FileRouter {
       if (specific) return specific;
     }
     return this.commands.get(lower);
+  }
+
+  public async loadDirectoryMiddlewares(): Promise<void> {
+    this.directoryMiddlewares.clear();
+    const commandsDir = path.join(this.srcDir, "commands");
+    if (!fs.existsSync(commandsDir)) return;
+
+    const files = this.getFilesRecursively(commandsDir, /^_middleware\.(ts|js|mjs)$/);
+    for (const file of files) {
+      try {
+        const mod = await this.importModule(file);
+        if (!mod) continue;
+
+        const rawList = Array.isArray(mod) ? mod : [mod];
+        const mwList: MiddlewareDefinition[] = [];
+
+        for (const item of rawList) {
+          if (typeof item === "function") {
+            mwList.push({ run: item, filePath: file });
+          } else if (item && typeof item.run === "function") {
+            mwList.push({ ...item, filePath: file });
+          }
+        }
+
+        if (mwList.length > 0) {
+          const relDir = path.dirname(path.relative(commandsDir, file)).replace(/\\/g, "/");
+          const key = relDir === "." ? "" : relDir;
+          this.directoryMiddlewares.set(key, mwList);
+          this.fileDefinitions.set(normalizePath(file), { type: "middleware", key: `dir:${key}` });
+        }
+      } catch (err: any) {
+        console.error(
+          colors.red(`[shard] Error loading directory middleware ${file}:`),
+          err.message
+        );
+      }
+    }
+  }
+
+  public getDirectoryMiddlewaresForFile(filePath: string): MiddlewareDefinition[] {
+    const commandsDir = path.join(this.srcDir, "commands");
+    const rel = path.relative(commandsDir, filePath).replace(/\\/g, "/");
+    if (rel.startsWith("..")) return [];
+
+    const dir = path.dirname(rel);
+    const levels: string[] = [""];
+
+    if (dir !== ".") {
+      const parts = dir.split("/");
+      let current = "";
+      for (const part of parts) {
+        current = current ? `${current}/${part}` : part;
+        levels.push(current);
+      }
+    }
+
+    const result: MiddlewareDefinition[] = [];
+    for (const level of levels) {
+      const list = this.directoryMiddlewares.get(level);
+      if (list) {
+        result.push(...list);
+      }
+    }
+    return result;
   }
 
   constructor(
@@ -78,6 +143,7 @@ export class FileRouter {
     this.middlewares.clear();
     this.components.clear();
     this.modals.clear();
+    this.directoryMiddlewares.clear();
     this.fileDefinitions.clear();
     this.plugins = [];
     if (this.apiRouter) {
@@ -85,6 +151,7 @@ export class FileRouter {
     }
 
     await this.loadMiddlewares();
+    await this.loadDirectoryMiddlewares();
     await this.loadCommands();
     await this.loadEvents();
     await this.loadComponents();

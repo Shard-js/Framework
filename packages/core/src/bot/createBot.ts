@@ -282,6 +282,14 @@ async function handleCommandInteraction(
     }
   }
 
+  // 2. Directory-level middlewares cascade (global -> folder -> command)
+  if (command.filePath) {
+    const dirMiddlewares = router.getDirectoryMiddlewaresForFile(command.filePath);
+    for (const dmw of dirMiddlewares) {
+      pipeline.push(dmw.run);
+    }
+  }
+
   const appendMiddlewares = async (
     mws: (string | MiddlewareDefinition)[],
     targetCmd: CommandDefinition
