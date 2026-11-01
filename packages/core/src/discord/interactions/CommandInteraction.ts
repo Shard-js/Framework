@@ -4,7 +4,9 @@ import {
   type DiscordInteraction,
   type DiscordInteractionDataOption,
   type InteractionReplyOptions,
+  type DiscordModal,
 } from "../types/interactions.js";
+import type { ModalBuilder } from "../builders/ComponentBuilders.js";
 import type { DiscordUser, DiscordMember } from "../types/entities.js";
 import { PermissionsBitField } from "../types/permissions.js";
 import type { RestClient } from "../rest/RestClient.js";
@@ -131,6 +133,23 @@ export class CommandInteraction {
       body: payload,
       auth: false,
     });
+  }
+
+  public async showModal(modal: ModalBuilder | DiscordModal | { toJSON: () => any }): Promise<void> {
+    if (this.replied || this.deferred) {
+      throw new Error("Cannot show a modal on an interaction that has already been replied to or deferred.");
+    }
+
+    const payload = typeof (modal as any).toJSON === "function" ? (modal as any).toJSON() : modal;
+    await this.rest.post(Endpoints.interactionCallback(this.id, this.token), {
+      body: {
+        type: InteractionResponseType.Modal,
+        data: payload,
+      },
+      auth: false,
+    });
+
+    this.replied = true;
   }
 
   private normalizeReplyOptions(options: string | InteractionReplyOptions): any {

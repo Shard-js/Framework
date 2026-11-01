@@ -183,7 +183,33 @@ export default defineMiddleware({
 });
 ```
 
-### 5. Drizzle ORM Plugin
+### 5. Modals & Text Inputs (`src/commands/feedback.ts`)
+
+```ts
+import { defineCommand, ModalBuilder, TextInputBuilder, ActionRowBuilder } from "@shardjs/core";
+
+export default defineCommand({
+  name: "feedback",
+  description: "Send feedback to the developers",
+  async run({ interaction }) {
+    const modal = new ModalBuilder()
+      .setCustomId("modal-feedback")
+      .setTitle("Feedback Form")
+      .addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(
+          new TextInputBuilder()
+            .setCustomId("feedback-input")
+            .setLabel("What can we improve?")
+            .setRequired(true)
+        )
+      );
+
+    await interaction.showModal(modal);
+  },
+});
+```
+
+### 6. Drizzle ORM Plugin
 
 ```ts
 import { drizzlePlugin } from "@shardjs/plugin-drizzle";

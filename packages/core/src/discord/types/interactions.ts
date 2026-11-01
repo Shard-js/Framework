@@ -181,3 +181,9 @@ export interface InteractionCallbackData {
   custom_id?: string;
   title?: string;
 }
+
+export interface DiscordModal {
+  custom_id: string;
+  title: string;
+  components: DiscordComponent[] | any[];
+}
