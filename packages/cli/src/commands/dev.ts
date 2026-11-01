@@ -38,7 +38,7 @@ export async function runDev(options: DevCommandOptions = {}): Promise<void> {
 
   console.log(colors.gray(`👀 Watching for file changes in ./src...`));
 
-  watcher.on("change", async (filePath) => {
+  const handleFileChange = async (filePath: string, action: "changed" | "added" | "removed") => {
     const relPath = path.relative(rootDir, filePath);
     const start = performance.now();
     try {
@@ -48,17 +48,28 @@ export async function runDev(options: DevCommandOptions = {}): Promise<void> {
       if (category) {
         console.log(
           colors.blue(
-            `⚡ [shard:hmr] Reloaded ${category} (${relPath}) in ${elapsed}ms (Gateway WebSocket kept alive)`
+            `⚡ [shard:hmr] ${action.toUpperCase()} ${category} (${relPath}) in ${elapsed}ms (Gateway WebSocket kept alive)`
           )
         );
+        if ((action === "added" || action === "removed") && category === "commands") {
+          console.log(
+            colors.yellow(
+              `💡 [shard:hmr] Command ${action} (${relPath}). Run 'shard deploy' if you wish to sync slash commands with Discord.`
+            )
+          );
+        }
       }
     } catch (err: any) {
       console.error(
-        colors.red(`❌ [shard:hmr] Error reloading ${relPath}:`),
+        colors.red(`❌ [shard:hmr] Error handling ${action} for ${relPath}:`),
         err.message
       );
     }
-  });
+  };
+
+  watcher.on("change", (filePath) => handleFileChange(filePath, "changed"));
+  watcher.on("add", (filePath) => handleFileChange(filePath, "added"));
+  watcher.on("unlink", (filePath) => handleFileChange(filePath, "removed"));
 
   let configWatcher: ReturnType<typeof chokidar.watch> | null = null;
   if (configPath) {
