@@ -76,6 +76,7 @@ export function createMockInteraction(
       id: options.user?.id || "mock-user-id",
       username: options.user?.username || "mockuser",
       discriminator: options.user?.discriminator || "0",
+      avatar: null,
     },
     member: options.member || (options.guildId ? { nick: "MockMember", roles: [] } : undefined),
     guild_id: options.guildId,
@@ -123,11 +124,12 @@ export function createMockClient(options: Partial<ClientOptions> = {}): Client {
     ...options,
   });
 
-  client.ready = true;
+  (client as any).ready = true;
   client.user = {
     id: "mock-bot-id",
     username: "ShardBot",
     discriminator: "0",
+    avatar: null,
     tag: "ShardBot#0000",
     avatarURL: () => null,
   };
@@ -163,7 +165,7 @@ export function createMockRouteContext(
   let body: BodyInit | undefined;
   if (method !== "GET" && method !== "HEAD" && options.body !== undefined) {
     if (typeof options.body === "string" || Buffer.isBuffer(options.body)) {
-      body = options.body;
+      body = options.body as any;
     } else {
       headers.set("Content-Type", "application/json");
       body = JSON.stringify(options.body);
