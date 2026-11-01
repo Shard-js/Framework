@@ -155,33 +155,40 @@ export const GET = defineRoute(async ({ params, bot }) => {
   return Response.json({
     id: guild.id,
     name: guild.name,
-    memberCount: guild.approximate_member_count,
+    memberCount: guild.member_count ?? guild.memberCount,
   });
 });
 ```
 
 ### 4. Middleware (`src/middleware/auth.ts`)
 
+Middlewares protect specific commands by name (`middleware: ["auth"]`) or apply globally. Use a fail-closed approach to ensure unauthenticated requests never slip through:
+
 ```ts
-import { defineMiddleware, PermissionsBitField, PermissionFlags } from "@shardjs/core";
+import { defineMiddleware, PermissionsBitField, PermissionFlagsBits } from "@shardjs/core";
 
 export default defineMiddleware({
   name: "auth",
   async run(ctx, next) {
-    if (ctx.interaction) {
-      const perms = new PermissionsBitField(ctx.interaction.member?.permissions || "0");
-      if (!perms.has(PermissionFlags.BanMembers)) {
-        await ctx.interaction.reply({
-          content: "You do not have permission to execute this command.",
-          ephemeral: true,
-        });
-        return;
-      }
+    // Fail-closed: ensure interaction context exists for command guards
+    if (!ctx.interaction) {
+      throw new Error("Unauthorized: Interaction context required.");
     }
+
+    const perms = new PermissionsBitField(ctx.interaction.member?.permissions || "0");
+    if (!perms.has(PermissionFlagsBits.BanMembers)) {
+      await ctx.interaction.reply({
+        content: "You do not have permission to execute this command.",
+        ephemeral: true,
+      });
+      return;
+    }
+
     await next();
   },
 });
 ```
+*Tip: Attach named middleware to specific commands (e.g. `middleware: ["auth"]` in `src/commands/moderation/ban.ts`) so commands like `/ping` remain public.*
 
 ### 5. Modals & Text Inputs (`src/commands/feedback.ts`)
 
@@ -221,6 +228,16 @@ export default defineConfig({
   ],
 });
 ```
+
+---
+
+## Entity Conventions & Naming
+
+Shard.js provides high-level camelCase helper properties on interactions and cached entities, while raw payloads from Discord are preserved:
+- **Client & Entities**: High-level helpers (`interaction.user`, `message.reply()`, `guild.members.ban()`).
+- **Gateway Events**: Emitted in standard camelCase (`messageCreate`, `voiceStateUpdate`, `guildRoleCreate`).
+- **Cache Parity**: Caches support both direct access (`bot.guilds.get(id)`) and discord.js style (`bot.guilds.cache.get(id)`).
+- **Raw Discord Fields**: Discord API v10 raw snake_case properties are always accessible via `interaction.raw` or directly on the entity (e.g. `member_count`, `channel_id`).
 
 ---
 
