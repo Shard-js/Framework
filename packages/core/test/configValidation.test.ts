@@ -3,6 +3,7 @@ import {
   apiServerConfigSchema,
   shardConfigSchema,
   normalizeIntents,
+  validateDiscordToken,
 } from "../src/config/loadConfig.js";
 import { RateLimiter } from "../src/discord/rest/RateLimiter.js";
 import { Shard, ShardStatus } from "../src/discord/gateway/Shard.js";
@@ -51,6 +52,30 @@ describe("Backend Validation & Lifecycle Hardening", () => {
     it("normalizes intents correctly", () => {
       const result = normalizeIntents(["Guilds", 1]);
       expect(result).toContain(1);
+    });
+
+    it("validateDiscordToken provides informative errors for missing, placeholder, or invalid tokens", () => {
+      // Missing
+      const missing = validateDiscordToken("");
+      expect(missing.valid).toBe(false);
+      expect(missing.error).toMatch(/Missing DISCORD_TOKEN/);
+
+      // Placeholder
+      const placeholder = validateDiscordToken("your_bot_token_here");
+      expect(placeholder.valid).toBe(false);
+      expect(placeholder.error).toMatch(/Placeholder token detected/);
+
+      // Malformed (not 3 dot-separated parts)
+      const malformed = validateDiscordToken("invalid-token-string");
+      expect(malformed.valid).toBe(false);
+      expect(malformed.error).toMatch(/Expected 3 dot-separated parts/);
+
+      // Valid format
+      const valid = validateDiscordToken(
+        "MTIzNDU2Nzg5MDEyMzQ1Njc4.GaBcDe.abcdefghijklmnopqrstuvwxyz12345"
+      );
+      expect(valid.valid).toBe(true);
+      expect(valid.error).toBeUndefined();
     });
   });
 

@@ -44,9 +44,86 @@ export const apiServerConfigSchema = z
   .strict()
   .optional();
 
+export function validateDiscordToken(
+  token: string | undefined
+): { valid: boolean; error?: string } {
+  if (!token || token.trim() === "") {
+    return {
+      valid: false,
+      error:
+        "Missing DISCORD_TOKEN. Please set 'DISCORD_TOKEN' in your .env or specify 'token' in shard.config.ts.",
+    };
+  }
+
+  const trimmed = token.trim();
+
+  if (
+    trimmed === "your_bot_token_here" ||
+    trimmed === "YOUR_BOT_TOKEN_HERE" ||
+    trimmed.startsWith("your_") ||
+    trimmed.includes("INSERT_") ||
+    trimmed === "your_token"
+  ) {
+    return {
+      valid: false,
+      error: `Placeholder token detected: "${trimmed}". Please replace it with your real Discord Bot Token from the Discord Developer Portal (https://discord.com/developers/applications).`,
+    };
+  }
+
+  if (
+    (process.env.NODE_ENV === "test" || process.env.VITEST) &&
+    (trimmed === "test-token" || trimmed === "mock-token" || trimmed === "dummy")
+  ) {
+    return { valid: true };
+  }
+
+  const parts = trimmed.split(".");
+  if (parts.length !== 3) {
+    return {
+      valid: false,
+      error: `Invalid Discord bot token format: Expected 3 dot-separated parts (ID.timestamp.hmac), but found ${parts.length} part(s). Check that the token was copied completely.`,
+    };
+  }
+
+  const [idPart, timestampPart, hmacPart] = parts;
+  if (idPart.length < 15 || timestampPart.length < 4 || hmacPart.length < 20) {
+    return {
+      valid: false,
+      error:
+        "Invalid Discord bot token segment lengths. Ensure the token was copied directly from Discord Developer Portal without truncation.",
+    };
+  }
+
+  const validCharRegex = /^[A-Za-z0-9_-]+$/;
+  if (
+    !validCharRegex.test(idPart) ||
+    !validCharRegex.test(timestampPart) ||
+    !validCharRegex.test(hmacPart)
+  ) {
+    return {
+      valid: false,
+      error:
+        "Invalid Discord bot token characters. A Discord token may only contain alphanumeric characters, underscores, and hyphens.",
+    };
+  }
+
+  return { valid: true };
+}
+
 export const shardConfigSchema = z
   .object({
-    token: z.string().min(1).optional(),
+    token: z
+      .string()
+      .superRefine((val, ctx) => {
+        const check = validateDiscordToken(val);
+        if (!check.valid) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: check.error || "Invalid Discord bot token",
+          });
+        }
+      })
+      .optional(),
     intents: z.array(z.union([z.number(), z.string()])).optional(),
     devGuildId: z.string().optional(),
     api: apiServerConfigSchema,

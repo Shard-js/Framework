@@ -1,7 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import colors from "picocolors";
-import { RestClient, Endpoints, loadConfig, normalizeIntents } from "@shardjs/core";
+import {
+  RestClient,
+  Endpoints,
+  loadConfig,
+  normalizeIntents,
+  validateDiscordToken,
+} from "@shardjs/core";
 
 export async function runDoctor(): Promise<void> {
   const rootDir = process.cwd();
@@ -40,14 +45,15 @@ export async function runDoctor(): Promise<void> {
   }
 
   const token = config.token || process.env.DISCORD_TOKEN;
-  if (!token) {
-    fail("DISCORD_TOKEN is missing! Set DISCORD_TOKEN in .env or shard.config.ts");
+  const tokenCheck = validateDiscordToken(token);
+  if (!tokenCheck.valid) {
+    fail(`Token check: ${tokenCheck.error}`);
   } else {
     const masked =
-      token.length > 10
-        ? `${token.slice(0, 8)}...${token.slice(-4)}`
+      token!.length > 10
+        ? `${token!.slice(0, 8)}...${token!.slice(-4)}`
         : "********";
-    pass(`Discord Token detected (${masked})`);
+    pass(`Discord Token detected and validated (${masked})`);
 
     try {
       const rest = new RestClient({ token });
