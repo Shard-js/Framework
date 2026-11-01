@@ -2,7 +2,18 @@
   "name": "shard-framework",
   "version": "0.2.0",
   "private": true,
-  "description": "Next.js-like modern TypeScript framework for Discord Bots",
+  "description": "Next.js-like modern TypeScript framework for Discord bots with native Gateway & REST engines, file routing, onion middleware, and built-in Web API",
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "typescript",
+    "framework",
+    "gateway",
+    "rest",
+    "nextjs-style",
+    "file-router",
+    "bot-framework"
+  ],
   "packageManager": "pnpm@12.3.4",
   "type": "module",
   "scripts": {
@@ -10,9 +21,11 @@
     "dev": "turbo run dev",
     "test": "vitest run",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "changeset": "changeset"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.27.12",
     "@types/node": "^22.13.0",
     "turbo": "^2.4.2",
     "typescript": "^5.7.3",

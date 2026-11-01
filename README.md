@@ -243,6 +243,31 @@ Shard.js provides high-level camelCase helper properties on interactions and cac
 
 ---
 
+## Feature-Matrix vs. discord.js
+
+| Feature | Shard.js | discord.js | Notes |
+| :--- | :---: | :---: | :--- |
+| **Discord API Target** | v10 | v10 | Native implementation without external Discord wrappers |
+| **Gateway Engine** | ✅ Native | ✅ Native | Auto-reconnect, resume, jitter, heartbeat ACK |
+| **Identify Rate Limiting** | ✅ Queue (5s / bucket) | ✅ Queue (5s / bucket) | Respects `max_concurrency` from Discord `/gateway/bot` |
+| **REST Engine** | ✅ Native (fetch) | ✅ Undici / REST | Sequential route bucket rate limiting, global 429 backoff |
+| **Multipart Uploads** | ✅ Web FormData | ✅ Custom Multipart | File uploads in channel send, interaction replies, followups |
+| **Slash Commands** | ✅ Declarative | ✅ Manual builders | Extended options: min/max value, length, channel types, localizations |
+| **Context Menus** | ✅ User & Message | ✅ User & Message | Fully routed through `FileRouter` and `defineCommand` |
+| **Folder-based Subcommands** | ✅ Built-in | ❌ Manual tree | Nested commands (e.g. `src/commands/moderation/ban.ts` -> `/moderation ban`) |
+| **Directory Middleware** | ✅ Cascade | ❌ Manual | `_middleware.ts` runs in order: Global -> Folder -> Command |
+| **File-based Routing** | ✅ Built-in | ❌ External loaders | Auto-discovers commands, events, components, modals, API |
+| **Hot Module Replacement (HMR)** | ✅ Zero-Gateway-Drop | ❌ Full restart | Reloads commands, events, routes without dropping Gateway connection |
+| **Built-in Web API** | ✅ Built-in (`@shardjs/api`) | ❌ Express/Fastify | Native Web Standard Request/Response, Next.js-style routes |
+| **Serverless Webhook Mode** | ✅ Built-in Ed25519 | ⚠️ Requires external | Handles Discord HTTP interactions directly via Webhooks |
+| **Test Mock Helpers** | ✅ Built-in | ❌ Community mocks | `createMockInteraction()`, `createMockClient()`, `createMockRouteContext()` |
+| **Voice / Audio** | ❌ None | ✅ `@discordjs/voice` | Shard.js does not provide native voice/audio streaming |
+| **Autocomplete Interactions** | ✅ Built-in | ✅ Built-in | Supported via `autocomplete(ctx)` on command definitions |
+| **Partials** | ❌ Not needed | ✅ Supported | Raw entities accessible directly; configurable LRU cache limits |
+| **Bundle Size & Dependencies** | 🪶 Extremely lean | 📦 Heavy | 0 runtime Discord dependencies, fast cold starts |
+
+---
+
 ## CLI Reference
 
 | Command | Flags | Description |
