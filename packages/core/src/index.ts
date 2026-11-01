@@ -13,3 +13,4 @@ export * from "./deploy/deployCommands.js";
 export * from "./discord/index.js";
 
 export { defineRoute } from "@shardjs/api";
+export * from "./testing/index.js";

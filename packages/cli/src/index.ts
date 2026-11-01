@@ -8,6 +8,7 @@ import { runDeploy } from "./commands/deploy.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runCreate } from "./commands/create.js";
 import { runDockerBuild, runDockerRun } from "./commands/docker.js";
+import { runTest } from "./commands/test.js";
 
 export {
   runDev,
@@ -18,6 +19,7 @@ export {
   runCreate,
   runDockerBuild,
   runDockerRun,
+  runTest,
 };
 
 export async function runCli(argv = process.argv): Promise<void> {
@@ -91,6 +93,14 @@ export async function runCli(argv = process.argv): Promise<void> {
     .option("-p, --port <port>", "Port to expose", { default: "3000" })
     .action(async (tag, options) => {
       await runDockerRun(tag, options.port);
+    });
+
+  cli
+    .command("test", "Run tests with vitest")
+    .option("-w, --watch", "Watch mode")
+    .option("-c, --coverage", "Collect test coverage")
+    .action(async (options) => {
+      await runTest(options);
     });
 
   for (const plugin of plugins) {
