@@ -23,6 +23,10 @@ export class ClientCache<K, V> implements Map<K, V> {
     return this.map.size;
   }
 
+  public get cache(): this {
+    return this;
+  }
+
   public get(key: K): V | undefined {
     const val = this.map.get(key);
     if (val !== undefined) {
