@@ -10,6 +10,7 @@ import { AutocompleteInteraction } from "../interactions/AutocompleteInteraction
 import { ComponentInteraction } from "../interactions/ComponentInteraction.js";
 import { ModalInteraction } from "../interactions/ModalInteraction.js";
 import type { WebSocketFactory } from "../gateway/ws/IWebSocket.js";
+import { MetricsCollector } from "../../metrics/index.js";
 
 export interface ClientCacheOptions {
   guilds?: number;
@@ -36,6 +37,7 @@ export class Client extends EventEmitter {
   public intents: number;
   public rest: RestClient;
   public shardManager: ShardManager;
+  public metrics: MetricsCollector;
 
   public user: ClientUser | null = null;
   public guilds: ClientCache<string, any>;
@@ -49,7 +51,14 @@ export class Client extends EventEmitter {
     this.token = options.token;
     this.intents = options.intents ?? 0;
 
-    this.rest = new RestClient({ token: this.token });
+    this.metrics = new MetricsCollector(() => ({ ws: this.ws }));
+    this.rest = new RestClient({
+      token: this.token,
+      onRateLimit: (info) => {
+        this.metrics.recordRateLimit(info.routeKey);
+        this.emit("rateLimit", info);
+      },
+    });
     this.shardManager = new ShardManager({
       token: this.token || "",
       intents: this.intents,

@@ -11,6 +11,8 @@ export * from "./bot/createBot.js";
 export * from "./deploy/deployCommands.js";
 
 export * from "./discord/index.js";
+export * from "./logging/index.js";
+export * from "./metrics/index.js";
 
 export { defineRoute } from "@shardjs/api";
 export * from "./testing/index.js";

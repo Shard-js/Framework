@@ -11,10 +11,14 @@ import type { ApplicationCommandType } from "../discord/types/interactions.js";
 import type { GatewayIntentBits } from "../discord/types/gateway.js";
 import type { PermissionResolvable } from "../discord/types/permissions.js";
 import type { GatewayEventMap } from "../discord/types/events.js";
+import type { Logger, LogLevel, LogFormat, LogEntry } from "../logging/index.js";
+import type { MetricsCollector, MetricsSnapshot } from "../metrics/index.js";
 
 export interface ShardContext {
   bot: Client;
   client: Client;
+  logger: Logger;
+  metrics: MetricsCollector;
   [key: string]: any;
 }
 
@@ -92,6 +96,9 @@ export interface CommandDefinition<TOptions = any> {
   descriptionLocalizations?: Record<string, string>;
   description_localizations?: Record<string, string>;
   middleware?: (string | MiddlewareDefinition)[];
+  cooldown?: number;
+  cooldownScope?: "user" | "guild" | "channel";
+  onCooldown?: (ctx: CommandContext<TOptions>, remainingSeconds: number) => Promise<any> | any;
   run: (ctx: CommandContext<TOptions>) => Promise<any> | any;
   autocomplete?: (ctx: AutocompleteContext) => Promise<any> | any;
   filePath?: string;
@@ -149,6 +156,11 @@ export interface ShardPlugin {
   cli?: (cmd: any) => void;
 }
 
+export interface HealthCheckConfig {
+  path?: string;
+  customCheck?: () => Promise<Record<string, any>> | Record<string, any>;
+}
+
 export interface ShardConfig {
   token?: string;
   publicKey?: string;
@@ -159,7 +171,17 @@ export interface ShardConfig {
   env?: ZodSchema<any>;
   plugins?: ShardPlugin[];
   clientOptions?: Partial<ClientOptions>;
+  logging?: {
+    level?: LogLevel;
+    format?: LogFormat;
+    destination?: (entry: LogEntry, formatted: string) => void;
+  };
+  metrics?: boolean | { enabled?: boolean; collectMemory?: boolean };
+  healthCheck?: boolean | string | HealthCheckConfig;
+  onCommandError?: (error: Error, ctx: CommandContext) => Promise<any> | any;
 }
 
 export type { RouteHandler } from "@shardjs/api";
 export type { Client, ClientOptions } from "../discord/client/Client.js";
+export type { Logger, LogLevel, LogFormat, LogEntry, LoggerOptions } from "../logging/index.js";
+export type { MetricsCollector, MetricsSnapshot, MetricsCollectorOptions } from "../metrics/index.js";

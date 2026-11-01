@@ -86,6 +86,14 @@ export class ApiRouter {
     methods: Record<string, RouteHandler>
   ): ApiRoute {
     const routePath = filePathToRoute(filePath, this.prefix);
+    return this.registerRoute(routePath, methods, filePath);
+  }
+
+  public registerRoute(
+    routePath: string,
+    methods: Record<string, RouteHandler>,
+    filePath = "internal"
+  ): ApiRoute {
     const { pattern, paramNames, catchAll } = routeToMatcher(routePath);
 
     const route: ApiRoute = {

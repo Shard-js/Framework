@@ -9,6 +9,7 @@ export interface RestClientOptions {
   timeout?: number;
   maxRetries?: number;
   userAgent?: string;
+  onRateLimit?: (info: { routeKey: string; retryAfterMs: number; isGlobal: boolean }) => void;
 }
 
 export interface RawFile {
@@ -33,6 +34,7 @@ export class RestClient {
   private maxRetries: number;
   private userAgent: string;
   private rateLimiter: RateLimiter;
+  private onRateLimit?: (info: { routeKey: string; retryAfterMs: number; isGlobal: boolean }) => void;
 
   constructor(options: RestClientOptions = {}) {
     this.token = options.token;
@@ -42,6 +44,7 @@ export class RestClient {
     this.userAgent =
       options.userAgent || "DiscordBot (https://github.com/Shard-js/Framework, 0.2.0)";
     this.rateLimiter = new RateLimiter();
+    this.onRateLimit = options.onRateLimit;
   }
 
   public setToken(token: string): this {
@@ -196,6 +199,7 @@ export class RestClient {
         }
 
         this.rateLimiter.updateHeaders(routeKey, response.headers, 429, retryAfterMs);
+        this.onRateLimit?.({ routeKey, retryAfterMs, isGlobal });
 
         if (attempt < this.maxRetries) {
           await new Promise((r) => setTimeout(r, retryAfterMs));

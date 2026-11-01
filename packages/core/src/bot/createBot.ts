@@ -4,6 +4,7 @@ import { Client } from "../discord/client/Client.js";
 import { normalizeIntents } from "../config/loadConfig.js";
 import { FileRouter } from "../router/fileRouter.js";
 import { composeMiddlewares } from "../middleware/runner.js";
+import { createLogger } from "../logging/index.js";
 import type {
   ShardConfig,
   ShardContext,
@@ -76,16 +77,77 @@ export function createBot(
 
   const router = new FileRouter(rootDir, apiServer?.router, options);
 
+  const logger = createLogger({
+    level: config.logging?.level,
+    format: config.logging?.format,
+    destination: config.logging?.destination,
+  });
+
   const context: ShardContext = {
     bot: client,
     client: client,
+    logger,
+    metrics: client.metrics,
   };
 
   if (apiServer) {
     apiServer.setContextProvider(() => context);
+
+    if (config.healthCheck !== false) {
+      const healthPath =
+        typeof config.healthCheck === "string"
+          ? config.healthCheck
+          : typeof config.healthCheck === "object" && config.healthCheck.path
+          ? config.healthCheck.path
+          : "/health";
+
+      const customCheck =
+        typeof config.healthCheck === "object" &&
+        typeof config.healthCheck.customCheck === "function"
+          ? config.healthCheck.customCheck
+          : undefined;
+
+      const healthHandler = async () => {
+        let customData = {};
+        if (customCheck) {
+          try {
+            customData = await customCheck();
+          } catch (err: any) {
+            customData = { error: err?.message || String(err) };
+          }
+        }
+
+        const wsInfo = client.ws;
+        const status = wsInfo.status === "READY" || !config.token ? "ok" : "degraded";
+
+        return new Response(
+          JSON.stringify({
+            status,
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString(),
+            gateway: {
+              status: wsInfo.status,
+              ping: wsInfo.ping,
+              shards: client.shardManager.shards.size || 1,
+            },
+            metrics: client.metrics.getSnapshot(),
+            ...customData,
+          }),
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      };
+
+      apiServer.router.registerRoute(healthPath, { GET: healthHandler });
+      const apiPrefix = config.api?.prefix || "/api";
+      if (healthPath.startsWith("/") && !healthPath.startsWith(apiPrefix)) {
+        apiServer.router.registerRoute(`${apiPrefix}${healthPath}`, { GET: healthHandler });
+      }
+    }
   }
 
-  setupEventProxy(client, router, context);
+  setupEventProxy(client, router, context, config);
 
   return {
     client,
@@ -170,12 +232,13 @@ export function createBot(
 function setupEventProxy(
   client: Client,
   router: FileRouter,
-  context: ShardContext
+  context: ShardContext,
+  config: ShardConfig
 ): void {
   client.on("interactionCreate", async (interaction) => {
     try {
       if (interaction instanceof CommandInteraction) {
-        await handleCommandInteraction(interaction, router, context);
+        await handleCommandInteraction(interaction, router, context, config);
       } else if (interaction instanceof AutocompleteInteraction) {
         await handleAutocompleteInteraction(interaction, router, context);
       } else if (interaction instanceof ComponentInteraction) {
@@ -258,10 +321,13 @@ function removeEventHandler(router: FileRouter, event: string, handler: EventDef
   }
 }
 
+const commandCooldowns = new Map<string, number>();
+
 async function handleCommandInteraction(
   interaction: CommandInteraction,
   router: FileRouter,
-  context: ShardContext
+  context: ShardContext,
+  config: ShardConfig
 ): Promise<void> {
   const rootCommand = router.getCommand(interaction.commandName, interaction.commandType);
 
@@ -285,6 +351,40 @@ async function handleCommandInteraction(
     if (resolvedSub) {
       command = resolvedSub;
     }
+  }
+
+  if (command.cooldown && command.cooldown > 0) {
+    const scope = command.cooldownScope || "user";
+    const entityId =
+      scope === "guild"
+        ? interaction.guildId || interaction.user.id
+        : scope === "channel"
+        ? interaction.channelId || interaction.user.id
+        : interaction.user.id;
+    const cooldownKey = `${command.name}:${scope}:${entityId}`;
+    const now = Date.now();
+    const expiresAt = commandCooldowns.get(cooldownKey) || 0;
+
+    if (now < expiresAt) {
+      const remainingSec = Math.max(0.1, Number(((expiresAt - now) / 1000).toFixed(1)));
+      const cmdContext: CommandContext = {
+        ...context,
+        interaction,
+        options: interaction.options,
+      };
+
+      if (typeof command.onCooldown === "function") {
+        await command.onCooldown(cmdContext, remainingSec);
+      } else {
+        await interaction.reply({
+          content: `⏳ Please wait ${remainingSec}s before using \`/${command.name}\` again.`,
+          ephemeral: true,
+        });
+      }
+      return;
+    }
+
+    commandCooldowns.set(cooldownKey, now + command.cooldown * 1000);
   }
 
   const pipeline: MiddlewareHandler[] = [];
@@ -347,24 +447,39 @@ async function handleCommandInteraction(
   };
 
   try {
+    context.metrics?.recordCommand(command.name);
     await composeMiddlewares(pipeline, cmdContext, async (ctx) => {
       await command.run(ctx);
     });
   } catch (err: any) {
-    console.error(colors.red(`[shard] Error executing command "/${command.name}":`), err);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction
-        .reply({
-          content: "❌ An unexpected error occurred while executing this command.",
-          ephemeral: true,
-        })
-        .catch(() => {});
-    } else if (interaction.deferred && !interaction.replied) {
-      await interaction
-        .editReply({
-          content: "❌ An unexpected error occurred while executing this command.",
-        })
-        .catch(() => {});
+    context.logger?.error(`Error executing command "/${command.name}":`, err, {
+      command: command.name,
+      user: interaction.user.id,
+      guild: interaction.guildId,
+    });
+    context.metrics?.recordCommandError(command.name, err);
+
+    if (config.onCommandError) {
+      try {
+        await config.onCommandError(err, cmdContext);
+      } catch (handlerErr: any) {
+        context.logger?.error("Error in custom onCommandError handler:", handlerErr);
+      }
+    } else {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction
+          .reply({
+            content: "❌ An unexpected error occurred while executing this command.",
+            ephemeral: true,
+          })
+          .catch(() => {});
+      } else if (interaction.deferred && !interaction.replied) {
+        await interaction
+          .editReply({
+            content: "❌ An unexpected error occurred while executing this command.",
+          })
+          .catch(() => {});
+      }
     }
   }
 }
