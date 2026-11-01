@@ -7,6 +7,7 @@ export interface IWebSocket {
   send(data: string | Buffer): void;
   close(code?: number, reason?: string): void;
   terminate(): void;
+  removeAllListeners?(event?: string): this;
 }
 
 export type WebSocketFactory = (url: string) => IWebSocket;

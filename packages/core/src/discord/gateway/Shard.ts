@@ -71,7 +71,13 @@ export class Shard extends EventEmitter {
     if (this.status === ShardStatus.Destroyed) {
       throw new Error(`Cannot connect destroyed Shard ${this.id}`);
     }
-    if (this.status === ShardStatus.Connected || this.status === ShardStatus.Connecting) {
+    if (
+      this.status === ShardStatus.Connected ||
+      this.status === ShardStatus.Connecting ||
+      this.status === ShardStatus.WaitingHello ||
+      this.status === ShardStatus.Identifying ||
+      this.status === ShardStatus.Resuming
+    ) {
       return;
     }
 
@@ -110,22 +116,35 @@ export class Shard extends EventEmitter {
     });
   }
 
-  public disconnect(code = 1000, reason = "Client disconnect"): void {
-    this.clearTimers();
-    this.status = ShardStatus.Disconnected;
+  private cleanupWs(terminate = true, code = 1000, reason = "Client disconnect"): void {
     if (this.ws) {
+      const oldWs = this.ws;
+      this.ws = null;
       try {
-        this.ws.close(code, reason);
+        if (typeof oldWs.removeAllListeners === "function") {
+          oldWs.removeAllListeners();
+        }
+        if (terminate) {
+          oldWs.terminate();
+        } else {
+          oldWs.close(code, reason);
+        }
       } catch {
         // Ignored
       }
-      this.ws = null;
     }
   }
 
+  public disconnect(code = 1000, reason = "Client disconnect"): void {
+    this.clearTimers();
+    this.status = ShardStatus.Disconnected;
+    this.cleanupWs(false, code, reason);
+  }
+
   public destroy(): void {
-    this.disconnect();
+    this.clearTimers();
     this.status = ShardStatus.Destroyed;
+    this.cleanupWs(true);
     this.removeAllListeners();
   }
 
@@ -304,19 +323,13 @@ export class Shard extends EventEmitter {
 
   private reconnect(resume = true): void {
     if (this.status === ShardStatus.Destroyed) return;
+    this.clearTimers();
     if (!resume) {
       this.sessionId = null;
       this.resumeGatewayUrl = null;
       this.seq = null;
     }
-    if (this.ws) {
-      try {
-        this.ws.terminate();
-      } catch {
-        // Ignored
-      }
-      this.ws = null;
-    }
+    this.cleanupWs(true);
     this.status = ShardStatus.Reconnecting;
     this.connect();
   }

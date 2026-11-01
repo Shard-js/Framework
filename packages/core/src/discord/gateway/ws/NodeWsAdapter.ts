@@ -34,6 +34,11 @@ export class NodeWsAdapter implements IWebSocket {
   public terminate(): void {
     this.ws.terminate();
   }
+
+  public removeAllListeners(event?: string): this {
+    this.ws.removeAllListeners(event);
+    return this;
+  }
 }
 
 export const defaultWebSocketFactory: WebSocketFactory = (url: string) => {
