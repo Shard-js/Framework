@@ -118,46 +118,116 @@ export class FileRouter {
     const commandsDir = path.join(this.srcDir, "commands");
     const files = this.getFilesRecursively(commandsDir);
 
+    interface SubcommandEntry {
+      subName: string;
+      groupName?: string;
+      def: CommandDefinition;
+      file: string;
+    }
+
+    interface RootCommandEntry {
+      rootName: string;
+      def?: CommandDefinition;
+      rootFile?: string;
+      subcommands: SubcommandEntry[];
+    }
+
+    const rootEntries = new Map<string, RootCommandEntry>();
+    const contextMenuFiles: { file: string; def: CommandDefinition; type: ApplicationCommandType }[] = [];
+
     for (const file of files) {
+      if (path.basename(file).startsWith("_")) {
+        continue;
+      }
+
       try {
         const commandDef: CommandDefinition = await this.importModule(file);
-        if (commandDef && typeof commandDef.run === "function") {
-          const rel = path.relative(commandsDir, file).replace(/\\/g, "/");
-          const base = rel.replace(/\.(ts|js|mjs)$/, "");
+        if (!commandDef || typeof commandDef.run !== "function") {
+          continue;
+        }
 
-          if (
-            (rel.startsWith("user/") || rel.startsWith("users/")) &&
-            !commandDef.type
-          ) {
-            commandDef.type = ApplicationCommandType.User;
-          } else if (
-            (rel.startsWith("message/") || rel.startsWith("messages/")) &&
-            !commandDef.type
-          ) {
-            commandDef.type = ApplicationCommandType.Message;
-          }
+        commandDef.filePath = file;
+        const rel = path.relative(commandsDir, file).replace(/\\/g, "/");
+        const parts = rel.split("/");
+        const fileName = parts[parts.length - 1];
+        const base = fileName.replace(/\.(ts|js|mjs)$/, "");
 
+        const isContextFolder =
+          parts[0] === "user" ||
+          parts[0] === "users" ||
+          parts[0] === "message" ||
+          parts[0] === "messages";
+
+        let explicitType: ApplicationCommandType | undefined = commandDef.type
+          ? resolveCommandType(commandDef.type)
+          : undefined;
+
+        if (!explicitType && isContextFolder) {
+          explicitType = parts[0].startsWith("user")
+            ? ApplicationCommandType.User
+            : ApplicationCommandType.Message;
+          commandDef.type = explicitType;
+        }
+
+        if (explicitType && explicitType !== ApplicationCommandType.ChatInput) {
           if (!commandDef.name) {
-            const fileName = path.basename(base);
-            if (
-              commandDef.type &&
-              resolveCommandType(commandDef.type) !== ApplicationCommandType.ChatInput
-            ) {
-              commandDef.name = fileName;
-            } else {
-              commandDef.name = base.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
-            }
+            commandDef.name = base;
           }
-          commandDef.filePath = file;
+          contextMenuFiles.push({ file, def: commandDef, type: explicitType });
+          continue;
+        }
 
-          const cmdType = resolveCommandType(commandDef.type);
-          const key =
-            cmdType !== ApplicationCommandType.ChatInput
-              ? `${cmdType}:${commandDef.name.toLowerCase()}`
-              : commandDef.name.toLowerCase();
-
-          this.commands.set(key, commandDef);
-          this.fileDefinitions.set(normalizePath(file), { type: "command", key });
+        if (parts.length === 1) {
+          const rootName = (commandDef.name || base).toLowerCase();
+          commandDef.name = commandDef.name || base.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+          let entry = rootEntries.get(rootName);
+          if (!entry) {
+            entry = { rootName, subcommands: [] };
+            rootEntries.set(rootName, entry);
+          }
+          entry.def = commandDef;
+          entry.rootFile = file;
+        } else if (parts.length === 2) {
+          const folderName = parts[0].toLowerCase();
+          if (base === "index") {
+            let entry = rootEntries.get(folderName);
+            if (!entry) {
+              entry = { rootName: folderName, subcommands: [] };
+              rootEntries.set(folderName, entry);
+            }
+            if (!commandDef.name) commandDef.name = folderName;
+            entry.def = commandDef;
+            entry.rootFile = file;
+          } else {
+            let entry = rootEntries.get(folderName);
+            if (!entry) {
+              entry = { rootName: folderName, subcommands: [] };
+              rootEntries.set(folderName, entry);
+            }
+            const subName = (commandDef.name || base).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+            commandDef.name = subName;
+            entry.subcommands.push({
+              subName,
+              def: commandDef,
+              file,
+            });
+          }
+        } else if (parts.length >= 3) {
+          const folderName = parts[0].toLowerCase();
+          const groupName = parts[1].toLowerCase();
+          let entry = rootEntries.get(folderName);
+          if (!entry) {
+            entry = { rootName: folderName, subcommands: [] };
+            rootEntries.set(folderName, entry);
+          }
+          const subName = (commandDef.name || base).toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+          commandDef.name = subName;
+          entry.subcommands.push({
+            subName,
+            groupName,
+            def: commandDef,
+            file,
+          });
         }
       } catch (err: any) {
         console.error(
@@ -165,6 +235,106 @@ export class FileRouter {
           err.message
         );
       }
+    }
+
+    for (const [rootName, entry] of rootEntries.entries()) {
+      if (entry.subcommands.length === 0 && entry.def) {
+        const key = rootName;
+        this.commands.set(key, entry.def);
+        if (entry.rootFile) {
+          this.fileDefinitions.set(normalizePath(entry.rootFile), { type: "command", key });
+        }
+      } else {
+        const rootCommand: CommandDefinition = entry.def || {
+          name: rootName,
+          description: `${rootName} commands`,
+          run: async () => {},
+        };
+        rootCommand.name = rootCommand.name || rootName;
+        if (!rootCommand.description) {
+          rootCommand.description = `${rootName} commands`;
+        }
+
+        rootCommand.subcommands = new Map();
+        const rootOptions: any[] = [];
+
+        const directSubs: SubcommandEntry[] = [];
+        const groupSubs = new Map<string, SubcommandEntry[]>();
+
+        for (const sub of entry.subcommands) {
+          if (sub.groupName) {
+            const list = groupSubs.get(sub.groupName) || [];
+            list.push(sub);
+            groupSubs.set(sub.groupName, list);
+          } else {
+            directSubs.push(sub);
+          }
+        }
+
+        for (const [groupName, subs] of groupSubs.entries()) {
+          const groupOptions: any[] = [];
+          for (const s of subs) {
+            rootCommand.subcommands.set(`${groupName}:${s.subName}`, s.def);
+            this.fileDefinitions.set(normalizePath(s.file), {
+              type: "command",
+              key: `${rootName}:${groupName}:${s.subName}`,
+            });
+            groupOptions.push({
+              name: s.subName,
+              description: s.def.description || `${s.subName} subcommand`,
+              type: "Subcommand",
+              options: s.def.options || [],
+            });
+          }
+          rootOptions.push({
+            name: groupName,
+            description: `${groupName} subcommand group`,
+            type: "SubcommandGroup",
+            options: groupOptions,
+          });
+        }
+
+        for (const s of directSubs) {
+          rootCommand.subcommands.set(s.subName, s.def);
+          this.fileDefinitions.set(normalizePath(s.file), {
+            type: "command",
+            key: `${rootName}:${s.subName}`,
+          });
+          rootOptions.push({
+            name: s.subName,
+            description: s.def.description || `${s.subName} subcommand`,
+            type: "Subcommand",
+            options: s.def.options || [],
+          });
+        }
+
+        rootCommand.options = rootOptions;
+
+        if (!rootCommand.defaultMemberPermissions) {
+          for (const s of entry.subcommands) {
+            if (s.def.defaultMemberPermissions) {
+              rootCommand.defaultMemberPermissions = s.def.defaultMemberPermissions;
+              break;
+            }
+          }
+        }
+        if (rootCommand.guildOnly === undefined) {
+          const hasGuildOnly = entry.subcommands.some((s) => s.def.guildOnly);
+          if (hasGuildOnly) rootCommand.guildOnly = true;
+        }
+
+        const key = rootName;
+        this.commands.set(key, rootCommand);
+        if (entry.rootFile) {
+          this.fileDefinitions.set(normalizePath(entry.rootFile), { type: "command", key });
+        }
+      }
+    }
+
+    for (const ctxCmd of contextMenuFiles) {
+      const key = `${ctxCmd.type}:${ctxCmd.def.name.toLowerCase()}`;
+      this.commands.set(key, ctxCmd.def);
+      this.fileDefinitions.set(normalizePath(ctxCmd.file), { type: "command", key });
     }
   }
 

@@ -41,6 +41,20 @@ export class AutocompleteInteraction {
     return false;
   }
 
+  public getSubcommand(): string | null {
+    const opts = this.raw.data?.options || [];
+    const group = opts.find((o: any) => o.type === 2);
+    const searchIn = group ? group.options || [] : opts;
+    const sub = searchIn.find((o: any) => o.type === 1);
+    return sub?.name || null;
+  }
+
+  public getSubcommandGroup(): string | null {
+    const opts = this.raw.data?.options || [];
+    const group = opts.find((o: any) => o.type === 2);
+    return group?.name || null;
+  }
+
   public getFocusedOption(): { name: string; value: string | number; type: number } | null {
     const findFocused = (opts: any[]): any => {
       for (const opt of opts) {

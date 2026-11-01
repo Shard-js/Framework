@@ -93,6 +93,19 @@ export function createBot(
             }
           }
         }
+        if (cmd.subcommands) {
+          for (const sub of cmd.subcommands.values()) {
+            if (sub.middleware) {
+              for (const mwRef of sub.middleware) {
+                if (typeof mwRef === "string" && !router.middlewares.has(mwRef)) {
+                  throw new Error(
+                    `[shard] Fatal: Subcommand "${cmd.name} ${sub.name}" references unresolved middleware "${mwRef}". Aborting start.`
+                  );
+                }
+              }
+            }
+          }
+        }
       }
 
       const allPlugins = [...(config.plugins || []), ...router.plugins];
@@ -237,15 +250,28 @@ async function handleCommandInteraction(
   router: FileRouter,
   context: ShardContext
 ): Promise<void> {
-  const command = router.getCommand(interaction.commandName, interaction.commandType);
+  const rootCommand = router.getCommand(interaction.commandName, interaction.commandType);
 
-  if (!command) {
+  if (!rootCommand) {
     const prefix = interaction.isContextMenu() ? "" : "/";
     await interaction.reply({
       content: `❌ Unknown command: \`${prefix}${interaction.commandName}\``,
       ephemeral: true,
     });
     return;
+  }
+
+  let command = rootCommand;
+  const subGroupName = interaction.options.getSubcommandGroup();
+  const subName = interaction.options.getSubcommand();
+  if (rootCommand.subcommands && (subName || subGroupName)) {
+    const subKey = subGroupName
+      ? `${subGroupName.toLowerCase()}:${subName?.toLowerCase()}`
+      : subName?.toLowerCase();
+    const resolvedSub = subKey ? rootCommand.subcommands.get(subKey) : undefined;
+    if (resolvedSub) {
+      command = resolvedSub;
+    }
   }
 
   const pipeline: MiddlewareHandler[] = [];
@@ -256,25 +282,41 @@ async function handleCommandInteraction(
     }
   }
 
-  if (command.middleware) {
-    for (const mwRef of command.middleware) {
+  const appendMiddlewares = async (
+    mws: (string | MiddlewareDefinition)[],
+    targetCmd: CommandDefinition
+  ): Promise<boolean> => {
+    for (const mwRef of mws) {
       if (typeof mwRef === "string") {
         const resolved = router.middlewares.get(mwRef);
         if (!resolved) {
           console.error(
-            colors.red(`[shard] Middleware "${mwRef}" for "/${command.name}" not found – execution blocked.`)
+            colors.red(
+              `[shard] Middleware "${mwRef}" for "/${targetCmd.name}" not found – execution blocked.`
+            )
           );
           await interaction.reply({
             content: "❌ This command is currently unavailable.",
             ephemeral: true,
           });
-          return;
+          return false;
         }
         pipeline.push(resolved.run);
       } else if (typeof mwRef === "object" && mwRef.run) {
         pipeline.push(mwRef.run);
       }
     }
+    return true;
+  };
+
+  if (rootCommand !== command && rootCommand.middleware) {
+    const ok = await appendMiddlewares(rootCommand.middleware, rootCommand);
+    if (!ok) return;
+  }
+
+  if (command.middleware) {
+    const ok = await appendMiddlewares(command.middleware, command);
+    if (!ok) return;
   }
 
   const cmdContext: CommandContext = {
@@ -312,7 +354,20 @@ async function handleAutocompleteInteraction(
   context: ShardContext
 ): Promise<void> {
   const commandName = interaction.commandName.toLowerCase();
-  const command = router.commands.get(commandName);
+  const rootCommand = router.commands.get(commandName);
+  let command = rootCommand;
+
+  const subGroupName = interaction.getSubcommandGroup();
+  const subName = interaction.getSubcommand();
+  if (rootCommand?.subcommands && (subName || subGroupName)) {
+    const subKey = subGroupName
+      ? `${subGroupName.toLowerCase()}:${subName?.toLowerCase()}`
+      : subName?.toLowerCase();
+    const resolvedSub = subKey ? rootCommand.subcommands.get(subKey) : undefined;
+    if (resolvedSub) {
+      command = resolvedSub;
+    }
+  }
 
   if (command?.autocomplete) {
     const autoContext: AutocompleteContext = {

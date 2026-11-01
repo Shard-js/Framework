@@ -236,14 +236,16 @@ export class CommandOptionResolver {
     this.resolved = interaction.data?.resolved || {};
     let currentOptions = interaction.data?.options || [];
 
-    if (currentOptions.length === 1 && currentOptions[0].type === 2) {
-      this.subcommandGroup = currentOptions[0].name;
-      currentOptions = currentOptions[0].options || [];
+    const groupOpt = currentOptions.find((o) => o.type === 2);
+    if (groupOpt) {
+      this.subcommandGroup = groupOpt.name;
+      currentOptions = groupOpt.options || [];
     }
 
-    if (currentOptions.length === 1 && currentOptions[0].type === 1) {
-      this.subcommand = currentOptions[0].name;
-      currentOptions = currentOptions[0].options || [];
+    const subOpt = currentOptions.find((o) => o.type === 1);
+    if (subOpt) {
+      this.subcommand = subOpt.name;
+      currentOptions = subOpt.options || [];
     }
 
     this.rawOptions = currentOptions;

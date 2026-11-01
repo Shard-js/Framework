@@ -95,6 +95,7 @@ export interface CommandDefinition<TOptions = any> {
   run: (ctx: CommandContext<TOptions>) => Promise<any> | any;
   autocomplete?: (ctx: AutocompleteContext) => Promise<any> | any;
   filePath?: string;
+  subcommands?: Map<string, CommandDefinition>;
 }
 
 export interface ComponentDefinition {
