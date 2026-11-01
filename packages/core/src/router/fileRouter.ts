@@ -16,9 +16,16 @@ function normalizePath(p: string): string {
   return path.resolve(p).replace(/\\/g, "/");
 }
 
+export interface FileRouterOptions {
+  distDir?: string;
+  isProduction?: boolean;
+}
+
 export class FileRouter {
   public rootDir: string;
   public srcDir: string;
+  public isProduction: boolean;
+  public distDir?: string;
 
   public commands: Map<string, CommandDefinition> = new Map();
   public events: Map<string, EventDefinition[]> = new Map();
@@ -30,12 +37,25 @@ export class FileRouter {
 
   private fileDefinitions: Map<string, { type: string; key: string }> = new Map();
 
-  constructor(rootDir: string = process.cwd(), apiRouter?: ApiRouter) {
+  constructor(
+    rootDir: string = process.cwd(),
+    apiRouter?: ApiRouter,
+    options?: FileRouterOptions
+  ) {
     this.rootDir = rootDir;
-    this.srcDir = fs.existsSync(path.join(rootDir, "src"))
-      ? path.join(rootDir, "src")
-      : rootDir;
     this.apiRouter = apiRouter;
+    this.isProduction = Boolean(options?.isProduction);
+    this.distDir = options?.distDir;
+
+    if (this.distDir && fs.existsSync(this.distDir)) {
+      this.srcDir = this.distDir;
+    } else if (fs.existsSync(path.join(rootDir, "src"))) {
+      this.srcDir = path.join(rootDir, "src");
+    } else if (fs.existsSync(path.join(rootDir, ".shard", "dist"))) {
+      this.srcDir = path.join(rootDir, ".shard", "dist");
+    } else {
+      this.srcDir = rootDir;
+    }
   }
 
   public async loadAll(): Promise<void> {

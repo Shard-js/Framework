@@ -26,30 +26,62 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
   const router = new FileRouter(rootDir);
   const entryPoints = router.getFilesRecursively(srcDir);
 
-  const configFile = path.join(rootDir, "shard.config.ts");
-  if (fs.existsSync(configFile)) {
-    entryPoints.push(configFile);
+  if (entryPoints.length > 0) {
+    await esbuild.build({
+      entryPoints,
+      outdir: outDir,
+      outbase: srcDir,
+      format: "esm",
+      target: "node20",
+      platform: "node",
+      sourcemap: options.sourcemap ?? false,
+      bundle: false, // keep file structure intact for file routing
+    });
   }
 
-  await esbuild.build({
-    entryPoints,
-    outdir: outDir,
-    format: "esm",
-    target: "node20",
-    platform: "node",
-    sourcemap: options.sourcemap ?? false,
-    bundle: false, // keep file structure intact for file routing
-  });
+  const configFileTs = path.join(rootDir, "shard.config.ts");
+  const configFileJs = path.join(rootDir, "shard.config.js");
+  const configFileMjs = path.join(rootDir, "shard.config.mjs");
+  const configSource = fs.existsSync(configFileTs)
+    ? configFileTs
+    : fs.existsSync(configFileJs)
+    ? configFileJs
+    : fs.existsSync(configFileMjs)
+    ? configFileMjs
+    : null;
 
-  const prodRunnerContent = `import { loadConfig, createBot } from "@shardjs/core";
+  if (configSource) {
+    await esbuild.build({
+      entryPoints: [configSource],
+      outfile: path.join(outDir, "shard.config.js"),
+      format: "esm",
+      target: "node20",
+      platform: "node",
+      sourcemap: options.sourcemap ?? false,
+      bundle: false,
+    });
+  }
+
+  const prodRunnerContent = `import { createBot } from "@shardjs/core";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import fs from "node:fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Runner is located at <project>/.shard/dist/runner.js -> rootDir is ../..
 const rootDir = path.resolve(__dirname, "../..");
+const distDir = __dirname;
 
-const { config } = await loadConfig(rootDir);
+let config = {};
+const compiledConfigPath = path.join(distDir, "shard.config.js");
+if (fs.existsSync(compiledConfigPath)) {
+  const mod = await import(pathToFileURL(compiledConfigPath).href);
+  config = mod.default || mod;
+} else {
+  const { loadConfig } = await import("@shardjs/core");
+  const loaded = await loadConfig(rootDir);
+  config = loaded.config;
+}
+
 if (process.env.PORT && config.api) {
   const p = Number(process.env.PORT);
   if (!Number.isNaN(p) && p > 0 && p <= 65535) {
@@ -57,7 +89,7 @@ if (process.env.PORT && config.api) {
   }
 }
 
-const bot = createBot(config, rootDir);
+const bot = createBot(config, rootDir, { distDir, isProduction: true });
 
 const shutdown = async () => {
   try {
@@ -78,12 +110,13 @@ console.log("[shard] Production bot running.");
 
   fs.writeFileSync(path.join(outDir, "runner.js"), prodRunnerContent, "utf-8");
 
-  await router.loadAll();
+  const prodRouter = new FileRouter(rootDir, undefined, { distDir: outDir, isProduction: true });
+  await prodRouter.loadAll();
 
   const elapsed = (performance.now() - startTime).toFixed(0);
   console.log(colors.green(`✅ Build completed in ${elapsed}ms`));
   console.log(colors.gray(`   Output directory: ${path.relative(rootDir, outDir)}`));
-  console.log(colors.cyan(`   • Slash Commands: ${router.commands.size}`));
-  console.log(colors.cyan(`   • Gateway Events: ${router.events.size}`));
-  console.log(colors.cyan(`   • Middleware: ${router.middlewares.size}\n`));
+  console.log(colors.cyan(`   • Slash Commands: ${prodRouter.commands.size}`));
+  console.log(colors.cyan(`   • Gateway Events: ${prodRouter.events.size}`));
+  console.log(colors.cyan(`   • Middleware: ${prodRouter.middlewares.size}\n`));
 }

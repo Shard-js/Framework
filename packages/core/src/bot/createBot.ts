@@ -29,9 +29,15 @@ export interface ShardBotInstance {
   stop: () => Promise<void>;
 }
 
+export interface CreateBotOptions {
+  distDir?: string;
+  isProduction?: boolean;
+}
+
 export function createBot(
   config: ShardConfig,
-  rootDir: string = process.cwd()
+  rootDir: string = process.cwd(),
+  options?: CreateBotOptions
 ): ShardBotInstance {
   const intentsBitmask = normalizeIntents(config.intents).reduce(
     (acc, bit) => acc | bit,
@@ -55,7 +61,7 @@ export function createBot(
     apiServer = new ApiServer(config.api);
   }
 
-  const router = new FileRouter(rootDir, apiServer?.router);
+  const router = new FileRouter(rootDir, apiServer?.router, options);
 
   const context: ShardContext = {
     bot: client,
