@@ -160,6 +160,8 @@ export const GET = defineRoute(async ({ params, bot }) => {
 });
 ```
 
+*Security defaults: The API server is hardened out of the box with a 1 MB body-size limit (HTTP 413), 30s request timeout, 15s headers timeout, strict CORS origin checks (`*` with credentials rejected at startup), and constant-time `timingSafeEqual` authentication.*
+
 ### 4. Middleware (`src/middleware/auth.ts`)
 
 Middlewares protect specific commands by name (`middleware: ["auth"]`) or apply globally. Use a fail-closed approach to ensure unauthenticated requests never slip through:

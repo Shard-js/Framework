@@ -276,4 +276,57 @@ describe("ApiServer (Security Hardening)", () => {
     await server.stop();
     server = null;
   });
+
+  it("enforces API Key authentication via x-api-key with timingSafeEqual", async () => {
+    server = new ApiServer({
+      port: 0,
+      auth: {
+        apiKey: "secure-api-key-xyz",
+      },
+    });
+
+    server.router.register("secure-data/route.ts", {
+      GET: () => Response.json({ status: "authorized" }),
+    });
+
+    const { port, host } = await server.start();
+    const url = `http://${host}:${port}/api/secure-data`;
+
+    // Missing header
+    const noKeyRes = await fetch(url);
+    expect(noKeyRes.status).toBe(401);
+
+    // Invalid key
+    const badKeyRes = await fetch(url, {
+      headers: { "x-api-key": "wrong-key" },
+    });
+    expect(badKeyRes.status).toBe(401);
+
+    // Valid key
+    const validKeyRes = await fetch(url, {
+      headers: { "x-api-key": "secure-api-key-xyz" },
+    });
+    expect(validKeyRes.status).toBe(200);
+    const body: any = await validKeyRes.json();
+    expect(body.status).toBe("authorized");
+  });
+
+  it("configures server timeouts and maxConnections correctly on the Node HTTP server", async () => {
+    server = new ApiServer({
+      port: 0,
+      requestTimeoutMs: 25_000,
+      headersTimeoutMs: 12_000,
+      keepAliveTimeoutMs: 4_000,
+      maxConnections: 500,
+    });
+
+    await server.start();
+    const rawServer: any = (server as any).server;
+    expect(rawServer).toBeDefined();
+    expect(rawServer.requestTimeout).toBe(25_000);
+    expect(rawServer.headersTimeout).toBe(12_000);
+    expect(rawServer.keepAliveTimeout).toBe(4_000);
+    expect(rawServer.maxConnections).toBe(500);
+  });
 });
+

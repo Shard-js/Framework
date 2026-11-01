@@ -153,17 +153,18 @@ In development mode (`shard dev`):
 - **Dynamic Route Matching**: Supports `[param]` and `[...catchAll]` segments.
   - Regex-escapes static path segments to prevent regex injection attacks.
   - Validates parameter names and safe-decodes URI segments with path-traversal protection.
-- **Hardened HTTP Server**:
-  - Defaults bind host to `127.0.0.1` (safe local development) and warns on `0.0.0.0`.
-  - Configurable `maxBodySize` streaming limit (default: 1MB) returning `413 Payload Too Large`.
-  - Strict CORS origin validation: enforces `Vary: Origin`, forbids wildcard origin with credentials, and returns `403 Forbidden` on unauthorized preflight requests.
-  - Returns `405 Method Not Allowed` with compliant `Allow` header when the path matches but the requested HTTP verb is not defined.
-  - Transparent `HEAD` request support by dispatching to `GET` handler and omitting response body.
-  - Central error handling and clean status code propagation (400, 401, 403, 404, 405, 413, 429, 500) preventing unhandled process crashes.
-  - Server timeout guards (`requestTimeout`, `headersTimeout`, `keepAliveTimeout`) and connection limits (`maxConnections`).
-  - Client-disconnect stream cancellation.
-  - Built-in sliding-window IP rate limiter with automatic expired entry pruning.
-  - Fail-fast configuration validation on startup via Zod schemas.
+- **Hardened HTTP Server Defaults & Configuration**:
+  | Parameter | Default Value | Description / Behavior |
+  | :--- | :--- | :--- |
+  | `host` | `127.0.0.1` | Local-only binding by default. Explicit warning if bound to `0.0.0.0`. |
+  | `maxBodySize` | `1_048_576` (1 MB) | Streaming and Content-Length body size guard returning `413 Payload Too Large`. |
+  | `requestTimeoutMs` | `30_000` (30s) | Server socket request timeout (`server.requestTimeout`). |
+  | `headersTimeoutMs` | `15_000` (15s) | Server headers parsing timeout (`server.headersTimeout`). |
+  | `keepAliveTimeoutMs`| `5_000` (5s) | Keep-alive socket idle timeout (`server.keepAliveTimeout`). |
+  | `maxConnections` | `1_000` | Maximum simultaneous open TCP connections. |
+  | `cors` | Strict validation | `origin: "*"` combined with `credentials: true` throws a startup error. Automatically sets `Vary: Origin`. Preflight `OPTIONS` returns 204 for allowed or 403 for forbidden. |
+  | `auth` | Fail-closed | Constant-time `crypto.timingSafeEqual` verification for `bearer` and `apiKey` (`x-api-key`). Returns 401 on missing or mismatched credentials. |
+  | `rateLimit` | Optional | Sliding-window per-IP limiter (`windowMs: 60_000`, `max: 100`) returning 429 with `Retry-After`. Prunes expired IPs every interval. |
 
 ---
 
