@@ -11,6 +11,7 @@ export interface ShardManagerOptions {
   shardIds?: number[];
   restClient?: RestClient;
   wsFactory?: WebSocketFactory;
+  spawnDelayMs?: number;
 }
 
 export class ShardManager extends EventEmitter {
@@ -21,6 +22,8 @@ export class ShardManager extends EventEmitter {
   private shardIds?: number[];
   private restClient?: RestClient;
   private wsFactory?: WebSocketFactory;
+  private spawnDelayMs: number;
+  private destroyed = false;
 
   constructor(options: ShardManagerOptions) {
     super();
@@ -30,6 +33,7 @@ export class ShardManager extends EventEmitter {
     this.shardIds = options.shardIds;
     this.restClient = options.restClient;
     this.wsFactory = options.wsFactory;
+    this.spawnDelayMs = options.spawnDelayMs ?? 5000;
   }
 
   public get ping(): number {
@@ -47,21 +51,36 @@ export class ShardManager extends EventEmitter {
   public async connect(): Promise<void> {
     let total = this.totalShards;
     let gatewayUrl: string | undefined;
+    let maxConcurrency = 1;
 
-    if (!total && this.restClient) {
+    if (this.restClient) {
       try {
         const botData: any = await this.restClient.get(Endpoints.gatewayBot());
-        total = botData.shards || 1;
+        if (!total) {
+          total = botData.shards || 1;
+        }
         gatewayUrl = botData.url;
+        if (botData.session_start_limit?.max_concurrency) {
+          maxConcurrency = botData.session_start_limit.max_concurrency;
+        }
       } catch {
-        total = 1;
+        if (!total) total = 1;
       }
     }
 
     total = total || 1;
     const ids = this.shardIds || Array.from({ length: total }, (_, i) => i);
 
+    // Group shards into concurrency buckets: shard_id % max_concurrency
+    const buckets = new Map<number, number[]>();
     for (const id of ids) {
+      const bucketKey = id % maxConcurrency;
+      const list = buckets.get(bucketKey) || [];
+      list.push(id);
+      buckets.set(bucketKey, list);
+    }
+
+    const connectShard = (id: number): Shard => {
       const shard = new Shard({
         id,
         totalShards: total,
@@ -74,7 +93,21 @@ export class ShardManager extends EventEmitter {
       this.setupShardListeners(shard);
       this.shards.set(id, shard);
       shard.connect();
-    }
+      return shard;
+    };
+
+    const bucketPromises = Array.from(buckets.values()).map(async (bucketShardIds) => {
+      for (let i = 0; i < bucketShardIds.length; i++) {
+        if (this.destroyed) break;
+        const id = bucketShardIds[i];
+        connectShard(id);
+        if (i < bucketShardIds.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, this.spawnDelayMs));
+        }
+      }
+    });
+
+    await Promise.all(bucketPromises);
   }
 
   public disconnect(): void {
@@ -84,6 +117,7 @@ export class ShardManager extends EventEmitter {
   }
 
   public destroy(): void {
+    this.destroyed = true;
     for (const shard of this.shards.values()) {
       shard.destroy();
     }
