@@ -6,8 +6,8 @@ import type {
   AutocompleteInteraction,
   ComponentInteraction,
   ModalInteraction,
-  ApplicationCommandType,
 } from "../discord/interactions/index.js";
+import type { ApplicationCommandType } from "../discord/types/interactions.js";
 import type { GatewayIntentBits } from "../discord/types/gateway.js";
 import type { PermissionResolvable } from "../discord/types/permissions.js";
 import type { GatewayEventMap } from "../discord/types/events.js";
@@ -151,6 +151,8 @@ export interface ShardPlugin {
 
 export interface ShardConfig {
   token?: string;
+  publicKey?: string;
+  interactionsPublicKey?: string;
   intents?: (GatewayIntentBits | number | keyof typeof GatewayIntentBits)[];
   devGuildId?: string;
   api?: ApiServerConfig;

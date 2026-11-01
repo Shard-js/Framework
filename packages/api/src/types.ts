@@ -48,6 +48,11 @@ export interface ApiAuthConfig {
   apiKey?: string;
 }
 
+export type InteractionHandler = (
+  interaction: any,
+  res: any
+) => Promise<void> | void;
+
 export interface ApiServerConfig {
   port?: number;
   host?: string;
@@ -63,4 +68,7 @@ export interface ApiServerConfig {
   maxConnections?: number;
   rateLimit?: RateLimitConfig;
   auth?: ApiAuthConfig;
+  interactionsPath?: string;
+  interactionsPublicKey?: string;
+  onInteraction?: InteractionHandler;
 }

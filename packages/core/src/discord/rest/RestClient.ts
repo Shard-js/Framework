@@ -150,7 +150,7 @@ export class RestClient {
 
       for (let i = 0; i < options.files.length; i++) {
         const file = options.files[i];
-        const blob = new Blob([file.data], {
+        const blob = new Blob([file.data as any], {
           type: file.contentType || "application/octet-stream",
         });
         formData.append(`files[${i}]`, blob, file.name);

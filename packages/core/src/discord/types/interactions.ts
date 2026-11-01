@@ -161,12 +161,8 @@ export interface DiscordInteraction {
   guild_locale?: string;
 }
 
-export interface RawFile {
-  name: string;
-  data: Buffer | Uint8Array;
-  contentType?: string;
-  description?: string;
-}
+import type { RawFile } from "../rest/RestClient.js";
+export type { RawFile };
 
 export interface InteractionReplyOptions {
   content?: string;

@@ -7,11 +7,13 @@ import { composeMiddlewares } from "../middleware/runner.js";
 import type {
   ShardConfig,
   ShardContext,
+  CommandDefinition,
   CommandContext,
   AutocompleteContext,
   ComponentContext,
   ModalContext,
   MiddlewareHandler,
+  MiddlewareDefinition,
   EventDefinition,
   EventContext,
 } from "../types/index.js";
@@ -58,7 +60,18 @@ export function createBot(
 
   let apiServer: ApiServer | undefined;
   if (config.api) {
-    apiServer = new ApiServer(config.api);
+    const apiConfig = {
+      ...config.api,
+      interactionsPublicKey:
+        config.api.interactionsPublicKey ||
+        config.interactionsPublicKey ||
+        config.publicKey ||
+        process.env.DISCORD_PUBLIC_KEY,
+    };
+    apiServer = new ApiServer(apiConfig);
+    apiServer.setInteractionHandler(async (rawInteraction, res) => {
+      client.handleInteraction(rawInteraction);
+    });
   }
 
   const router = new FileRouter(rootDir, apiServer?.router, options);

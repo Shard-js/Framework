@@ -56,19 +56,19 @@ export class CommandInteraction {
     return Boolean(this.guildId);
   }
 
-  public isChatInputCommand(): this is CommandInteraction {
+  public isChatInputCommand(): boolean {
     return !this.commandType || this.commandType === ApplicationCommandType.ChatInput;
   }
 
-  public isUserContextMenu(): this is CommandInteraction {
+  public isUserContextMenu(): boolean {
     return this.commandType === ApplicationCommandType.User;
   }
 
-  public isMessageContextMenu(): this is CommandInteraction {
+  public isMessageContextMenu(): boolean {
     return this.commandType === ApplicationCommandType.Message;
   }
 
-  public isContextMenu(): this is CommandInteraction {
+  public isContextMenu(): boolean {
     return this.isUserContextMenu() || this.isMessageContextMenu();
   }
 

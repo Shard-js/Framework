@@ -3,7 +3,12 @@ import { Readable, Transform } from "node:stream";
 import { timingSafeEqual } from "node:crypto";
 import colors from "picocolors";
 import { ApiRouter } from "./router.js";
-import type { ApiServerConfig, RouteHandlerContext } from "./types.js";
+import { verifyDiscordSignature } from "./crypto.js";
+import type {
+  ApiServerConfig,
+  RouteHandlerContext,
+  InteractionHandler,
+} from "./types.js";
 
 interface IpRateLimitState {
   count: number;
@@ -16,6 +21,7 @@ export class ApiServer {
   private config: ApiServerConfig;
   private contextProvider: () => Record<string, any>;
   private ipRateLimits = new Map<string, IpRateLimitState>();
+  private interactionHandler?: InteractionHandler;
 
   constructor(
     config: ApiServerConfig = {},
@@ -24,6 +30,9 @@ export class ApiServer {
     this.config = config;
     this.router = new ApiRouter(config.prefix || "/api");
     this.contextProvider = contextProvider;
+    if (config.onInteraction) {
+      this.interactionHandler = config.onInteraction;
+    }
 
     const cors = this.config.cors;
     if (cors) {
@@ -42,6 +51,10 @@ export class ApiServer {
 
   public setContextProvider(provider: () => Record<string, any>): void {
     this.contextProvider = provider;
+  }
+
+  public setInteractionHandler(handler: InteractionHandler): void {
+    this.interactionHandler = handler;
   }
 
   public async start(): Promise<{ port: number; host: string }> {
@@ -280,6 +293,23 @@ export class ApiServer {
       return;
     }
 
+    const prefix = this.config.prefix || "/api";
+    const interactionsPath =
+      this.config.interactionsPath || `${prefix}/interactions`;
+
+    const isInteractionRoute =
+      fullUrl.pathname === interactionsPath ||
+      fullUrl.pathname === "/interactions" ||
+      fullUrl.pathname === `${prefix}/interactions`;
+
+    if (
+      isInteractionRoute &&
+      (this.config.interactionsPublicKey || this.interactionHandler)
+    ) {
+      await this.handleInteractionRequest(req, res);
+      return;
+    }
+
     const matched = this.router.match(fullUrl.pathname, req.method || "GET");
 
     if (matched && matched.malformed) {
@@ -480,5 +510,102 @@ export class ApiServer {
         res.end();
       }
     }
+  }
+
+  private async handleInteractionRequest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ): Promise<void> {
+    if (req.method !== "POST") {
+      res.setHeader("Allow", "POST");
+      res.writeHead(405, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Method Not Allowed" }));
+      return;
+    }
+
+    const maxBodySize = this.config.maxBodySize ?? 1_048_576;
+    const rawBody = await this.readRawBody(req, maxBodySize, res);
+    if (rawBody === null) return;
+
+    const signature = (req.headers["x-signature-ed25519"] as string) || null;
+    const timestamp = (req.headers["x-signature-timestamp"] as string) || null;
+    const publicKey = this.config.interactionsPublicKey;
+
+    if (!publicKey || !verifyDiscordSignature(rawBody, signature, timestamp, publicKey)) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Invalid request signature" }));
+      return;
+    }
+
+    let interaction: any;
+    try {
+      interaction = JSON.parse(rawBody.toString("utf-8"));
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Bad Request", message: "Invalid JSON body" }));
+      return;
+    }
+
+    // Discord PING (Type 1) -> PONG (Type 1)
+    if (interaction.type === 1) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ type: 1 }));
+      return;
+    }
+
+    if (this.interactionHandler) {
+      try {
+        await this.interactionHandler(interaction, res);
+      } catch (err: any) {
+        console.error(colors.red("[shard:api] Error in interaction handler:"), err);
+      }
+      if (!res.headersSent) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ type: 5 }));
+      }
+      return;
+    }
+
+    if (!res.headersSent) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ type: 5 }));
+    }
+  }
+
+  private async readRawBody(
+    req: http.IncomingMessage,
+    maxBodySize: number,
+    res: http.ServerResponse
+  ): Promise<Buffer | null> {
+    return new Promise((resolve) => {
+      const chunks: Buffer[] = [];
+      let totalSize = 0;
+
+      req.on("data", (chunk: Buffer) => {
+        totalSize += chunk.length;
+        if (totalSize > maxBodySize) {
+          if (!res.headersSent) {
+            res.writeHead(413, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Payload Too Large", maxBytes: maxBodySize }));
+          }
+          req.destroy();
+          resolve(null);
+          return;
+        }
+        chunks.push(chunk);
+      });
+
+      req.on("end", () => {
+        resolve(Buffer.concat(chunks));
+      });
+
+      req.on("error", () => {
+        if (!res.headersSent) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Bad Request", message: "Stream error" }));
+        }
+        resolve(null);
+      });
+    });
   }
 }

@@ -184,7 +184,7 @@ export class Client extends EventEmitter {
     this.emit("ready", this);
   }
 
-  private handleInteraction(rawInteraction: any): void {
+  public handleInteraction(rawInteraction: any): void {
     switch (rawInteraction.type) {
       case InteractionType.ApplicationCommand:
         const cmdInteraction = new CommandInteraction(rawInteraction, this.rest);
