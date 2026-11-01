@@ -161,6 +161,13 @@ export interface DiscordInteraction {
   guild_locale?: string;
 }
 
+export interface RawFile {
+  name: string;
+  data: Buffer | Uint8Array;
+  contentType?: string;
+  description?: string;
+}
+
 export interface InteractionReplyOptions {
   content?: string;
   embeds?: DiscordEmbed[];
@@ -168,6 +175,7 @@ export interface InteractionReplyOptions {
   ephemeral?: boolean;
   tts?: boolean;
   allowedMentions?: DiscordAllowedMentions;
+  files?: RawFile[];
 }
 
 export interface InteractionCallbackData {

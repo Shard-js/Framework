@@ -11,8 +11,16 @@ export interface RestClientOptions {
   userAgent?: string;
 }
 
+export interface RawFile {
+  name: string;
+  data: Buffer | Uint8Array;
+  contentType?: string;
+  description?: string;
+}
+
 export interface RequestOptions {
   body?: any;
+  files?: RawFile[];
   query?: Record<string, string | number | boolean | undefined>;
   headers?: Record<string, string>;
   auth?: boolean;
@@ -109,7 +117,48 @@ export class RestClient {
     }
 
     let body: BodyInit | undefined;
-    if (options.body !== undefined) {
+
+    if (options.files && options.files.length > 0) {
+      const formData = new FormData();
+      const payloadBody =
+        options.body !== undefined
+          ? typeof options.body === "object" && options.body !== null
+            ? { ...options.body }
+            : options.body
+          : {};
+
+      if (typeof payloadBody === "object" && payloadBody !== null) {
+        if (payloadBody.data && typeof payloadBody.data === "object") {
+          if (!payloadBody.data.attachments) {
+            payloadBody.data.attachments = options.files.map((file, i) => ({
+              id: i,
+              filename: file.name,
+              description: file.description,
+            }));
+          }
+        } else {
+          if (!payloadBody.attachments) {
+            payloadBody.attachments = options.files.map((file, i) => ({
+              id: i,
+              filename: file.name,
+              description: file.description,
+            }));
+          }
+        }
+        formData.append("payload_json", JSON.stringify(payloadBody));
+      }
+
+      for (let i = 0; i < options.files.length; i++) {
+        const file = options.files[i];
+        const blob = new Blob([file.data], {
+          type: file.contentType || "application/octet-stream",
+        });
+        formData.append(`files[${i}]`, blob, file.name);
+      }
+
+      body = formData;
+      headers.delete("Content-Type");
+    } else if (options.body !== undefined) {
       headers.set("Content-Type", "application/json");
       body = JSON.stringify(options.body);
     }

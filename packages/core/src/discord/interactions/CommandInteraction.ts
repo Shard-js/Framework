@@ -78,11 +78,13 @@ export class CommandInteraction {
     }
 
     const payload = this.normalizeReplyOptions(options);
+    const files = typeof options === "object" ? options.files : undefined;
     await this.rest.post(Endpoints.interactionCallback(this.id, this.token), {
       body: {
         type: InteractionResponseType.ChannelMessageWithSource,
         data: payload,
       },
+      files,
       auth: false,
     });
 
@@ -110,10 +112,12 @@ export class CommandInteraction {
 
   public async editReply(options: string | InteractionReplyOptions): Promise<any> {
     const payload = this.normalizeReplyOptions(options);
+    const files = typeof options === "object" ? options.files : undefined;
     return this.rest.patch(
       Endpoints.originalInteractionResponse(this.applicationId, this.token),
       {
         body: payload,
+        files,
         auth: false,
       }
     );
@@ -129,8 +133,10 @@ export class CommandInteraction {
 
   public async followUp(options: string | InteractionReplyOptions): Promise<any> {
     const payload = this.normalizeReplyOptions(options);
+    const files = typeof options === "object" ? options.files : undefined;
     return this.rest.post(Endpoints.followupMessage(this.applicationId, this.token), {
       body: payload,
+      files,
       auth: false,
     });
   }

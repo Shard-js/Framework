@@ -217,20 +217,28 @@ export class Client extends EventEmitter {
     return {
       ...data,
       async reply(options: any) {
-        const payload = typeof options === "string" ? { content: options } : options;
+        const isString = typeof options === "string";
+        const payload = isString ? { content: options } : { ...options };
+        const files = !isString ? payload.files : undefined;
+        if (files) delete payload.files;
         return client.rest.post(Endpoints.channelMessages(data.channel_id), {
           body: {
             ...payload,
             message_reference: { message_id: data.id },
           },
+          files,
         });
       },
       channel: {
         id: data.channel_id,
         async send(options: any) {
-          const payload = typeof options === "string" ? { content: options } : options;
+          const isString = typeof options === "string";
+          const payload = isString ? { content: options } : { ...options };
+          const files = !isString ? payload.files : undefined;
+          if (files) delete payload.files;
           return client.rest.post(Endpoints.channelMessages(data.channel_id), {
             body: payload,
+            files,
           });
         },
       },
@@ -273,9 +281,13 @@ export class Client extends EventEmitter {
       ...channel,
       isTextBased: () => channel.type === 0 || channel.type === 1 || channel.type === 5,
       async send(options: any) {
-        const payload = typeof options === "string" ? { content: options } : options;
+        const isString = typeof options === "string";
+        const payload = isString ? { content: options } : { ...options };
+        const files = !isString ? payload.files : undefined;
+        if (files) delete payload.files;
         return client.rest.post(Endpoints.channelMessages(channel.id), {
           body: payload,
+          files,
         });
       },
     };
