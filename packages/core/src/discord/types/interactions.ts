@@ -108,6 +108,8 @@ export interface DiscordComponent {
   max_length?: number;
   required?: boolean;
   value?: string;
+  channel_types?: number[];
+  default_values?: any[];
   components?: DiscordComponent[];
 }
 

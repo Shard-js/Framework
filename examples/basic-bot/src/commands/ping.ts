@@ -1,8 +1,10 @@
-import { defineCommand } from "@shardjs/core";
+import { defineCommand, SlashCommandBuilder, cooldown } from "@shardjs/core";
 
 export default defineCommand({
-  name: "ping",
-  description: "Displays the bot's WebSocket latency",
+  data: new SlashCommandBuilder()
+    .setName("ping")
+    .setDescription("Displays the bot's WebSocket latency"),
+  middleware: [cooldown(3)],
   async run({ interaction, bot }) {
     const ping = bot.ws.ping;
     await interaction.reply({

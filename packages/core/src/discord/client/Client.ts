@@ -238,6 +238,24 @@ export class Client extends EventEmitter {
           files,
         });
       },
+      async delete() {
+        return client.rest.delete(Endpoints.channelMessage(data.channel_id, data.id));
+      },
+      async edit(options: any) {
+        const isString = typeof options === "string";
+        const payload = isString ? { content: options } : { ...options };
+        const files = !isString ? payload.files : undefined;
+        if (files) delete payload.files;
+        return client.rest.patch(Endpoints.channelMessage(data.channel_id, data.id), {
+          body: payload,
+          files,
+        });
+      },
+      async react(emoji: string) {
+        return client.rest.put(
+          `/channels/${data.channel_id}/messages/${data.id}/reactions/${encodeURIComponent(emoji)}/@me`
+        );
+      },
       channel: {
         id: data.channel_id,
         async send(options: any) {
@@ -249,6 +267,11 @@ export class Client extends EventEmitter {
             body: payload,
             files,
           });
+        },
+        messages: {
+          async fetch(messageId: string) {
+            return client.rest.get(Endpoints.channelMessage(data.channel_id, messageId));
+          },
         },
       },
     };
@@ -270,6 +293,12 @@ export class Client extends EventEmitter {
         guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null,
       channels: {
         cache: channelsCache,
+        async fetch(channelId: string) {
+          const ch = await client.rest.get(Endpoints.channel(channelId));
+          const enriched = client.enrichChannel(ch);
+          channelsCache.set(channelId, enriched);
+          return enriched;
+        },
       },
       members: {
         async ban(userId: string, options?: { reason?: string; deleteMessageSeconds?: number }) {
@@ -279,6 +308,14 @@ export class Client extends EventEmitter {
               delete_message_seconds: options?.deleteMessageSeconds,
             },
           });
+        },
+        async kick(userId: string, reason?: string) {
+          return client.rest.delete(Endpoints.guildMember(guild.id, userId), {
+            headers: reason ? { "X-Audit-Log-Reason": reason } : undefined,
+          });
+        },
+        async fetch(userId: string) {
+          return client.rest.get(Endpoints.guildMember(guild.id, userId));
         },
       },
     };
@@ -298,6 +335,11 @@ export class Client extends EventEmitter {
           body: payload,
           files,
         });
+      },
+      messages: {
+        async fetch(messageId: string) {
+          return client.rest.get(Endpoints.channelMessage(channel.id, messageId));
+        },
       },
     };
   }

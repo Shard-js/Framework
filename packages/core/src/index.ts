@@ -7,6 +7,7 @@ export * from "./router/defineMiddleware.js";
 export * from "./router/definePlugin.js";
 export * from "./router/fileRouter.js";
 export * from "./middleware/runner.js";
+export * from "./middleware/builtin.js";
 export * from "./bot/createBot.js";
 export * from "./deploy/deployCommands.js";
 

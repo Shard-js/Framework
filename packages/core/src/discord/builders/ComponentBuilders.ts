@@ -6,7 +6,16 @@ import {
   type DiscordSelectOption,
 } from "../types/interactions.js";
 
-export class ActionRowBuilder<T extends ButtonBuilder | StringSelectMenuBuilder | TextInputBuilder = any> {
+export type AnyActionRowComponent =
+  | ButtonBuilder
+  | StringSelectMenuBuilder
+  | UserSelectMenuBuilder
+  | RoleSelectMenuBuilder
+  | MentionableSelectMenuBuilder
+  | ChannelSelectMenuBuilder
+  | TextInputBuilder;
+
+export class ActionRowBuilder<T extends AnyActionRowComponent = any> {
   public type: ComponentType = ComponentType.ActionRow;
   public components: T[] = [];
 
@@ -75,12 +84,15 @@ export class ButtonBuilder {
   }
 }
 
-export class StringSelectMenuBuilder {
-  public type: ComponentType = ComponentType.StringSelect;
-  private data: DiscordComponent = {
-    type: ComponentType.StringSelect,
-    options: [],
-  };
+export abstract class BaseSelectMenuBuilder {
+  public abstract type: ComponentType;
+  protected data: DiscordComponent;
+
+  constructor(type: ComponentType) {
+    this.data = {
+      type,
+    };
+  }
 
   public setCustomId(customId: string): this {
     this.data.custom_id = customId;
@@ -107,6 +119,19 @@ export class StringSelectMenuBuilder {
     return this;
   }
 
+  public toJSON(): DiscordComponent {
+    return { ...this.data };
+  }
+}
+
+export class StringSelectMenuBuilder extends BaseSelectMenuBuilder {
+  public type: ComponentType = ComponentType.StringSelect;
+
+  constructor() {
+    super(ComponentType.StringSelect);
+    this.data.options = [];
+  }
+
   public addOptions(...options: DiscordSelectOption[]): this {
     if (!this.data.options) this.data.options = [];
     this.data.options.push(...options);
@@ -117,9 +142,68 @@ export class StringSelectMenuBuilder {
     this.data.options = [...options];
     return this;
   }
+}
 
-  public toJSON(): DiscordComponent {
-    return { ...this.data };
+export class UserSelectMenuBuilder extends BaseSelectMenuBuilder {
+  public type: ComponentType = ComponentType.UserSelect;
+
+  constructor() {
+    super(ComponentType.UserSelect);
+  }
+
+  public setDefaultUsers(...userIds: string[]): this {
+    this.data.default_values = userIds.map((id) => ({ id, type: "user" }));
+    return this;
+  }
+}
+
+export class RoleSelectMenuBuilder extends BaseSelectMenuBuilder {
+  public type: ComponentType = ComponentType.RoleSelect;
+
+  constructor() {
+    super(ComponentType.RoleSelect);
+  }
+
+  public setDefaultRoles(...roleIds: string[]): this {
+    this.data.default_values = roleIds.map((id) => ({ id, type: "role" }));
+    return this;
+  }
+}
+
+export class MentionableSelectMenuBuilder extends BaseSelectMenuBuilder {
+  public type: ComponentType = ComponentType.MentionableSelect;
+
+  constructor() {
+    super(ComponentType.MentionableSelect);
+  }
+
+  public setDefaultValues(...values: { id: string; type: "user" | "role" }[]): this {
+    this.data.default_values = [...values];
+    return this;
+  }
+}
+
+export class ChannelSelectMenuBuilder extends BaseSelectMenuBuilder {
+  public type: ComponentType = ComponentType.ChannelSelect;
+
+  constructor() {
+    super(ComponentType.ChannelSelect);
+  }
+
+  public addChannelTypes(...types: number[]): this {
+    if (!this.data.channel_types) this.data.channel_types = [];
+    this.data.channel_types.push(...types);
+    return this;
+  }
+
+  public setChannelTypes(...types: number[]): this {
+    this.data.channel_types = [...types];
+    return this;
+  }
+
+  public setDefaultChannels(...channelIds: string[]): this {
+    this.data.default_values = channelIds.map((id) => ({ id, type: "channel" }));
+    return this;
   }
 }
 

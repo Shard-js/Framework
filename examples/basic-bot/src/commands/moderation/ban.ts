@@ -1,25 +1,24 @@
-import { defineCommand, PermissionFlagsBits } from "@shardjs/core";
+import {
+  defineCommand,
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  cooldown,
+  requireGuild,
+} from "@shardjs/core";
 
 export default defineCommand({
-  name: "ban",
-  description: "Bans a member from the Discord guild",
-  guildOnly: true,
-  defaultMemberPermissions: PermissionFlagsBits.BanMembers,
-  options: [
-    {
-      name: "target",
-      description: "The member to ban",
-      type: "User",
-      required: true,
-    },
-    {
-      name: "reason",
-      description: "Reason for the ban",
-      type: "String",
-      required: false,
-    },
-  ],
-  middleware: ["auth"],
+  data: new SlashCommandBuilder()
+    .setName("ban")
+    .setDescription("Bans a member from the Discord guild")
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+    .setDMPermission(false)
+    .addUserOption((opt) =>
+      opt.setName("target").setDescription("The member to ban").setRequired(true)
+    )
+    .addStringOption((opt) =>
+      opt.setName("reason").setDescription("Reason for the ban").setRequired(false)
+    ),
+  middleware: ["auth", cooldown(5), requireGuild()],
   async run({ interaction, options, bot, db }) {
     const targetUser = options.getUser("target", true);
     const reason = options.getString("reason") ?? "No reason provided";

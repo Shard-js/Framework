@@ -163,6 +163,13 @@ export class CommandInteraction {
     );
   }
 
+  public async fetchReply(): Promise<DiscordMessage> {
+    return this.rest.get(
+      Endpoints.originalInteractionResponse(this.applicationId, this.token),
+      { auth: false }
+    );
+  }
+
   public async deleteReply(): Promise<void> {
     await this.rest.delete(
       Endpoints.originalInteractionResponse(this.applicationId, this.token),

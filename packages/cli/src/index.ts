@@ -9,6 +9,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { runCreate } from "./commands/create.js";
 import { runDockerBuild, runDockerRun } from "./commands/docker.js";
 import { runTest } from "./commands/test.js";
+import { runGenerate } from "./commands/generate.js";
 
 export {
   runDev,
@@ -20,6 +21,7 @@ export {
   runDockerBuild,
   runDockerRun,
   runTest,
+  runGenerate,
 };
 
 export async function runCli(argv = process.argv): Promise<void> {
@@ -101,6 +103,14 @@ export async function runCli(argv = process.argv): Promise<void> {
     .option("-c, --coverage", "Collect test coverage")
     .action(async (options) => {
       await runTest(options);
+    });
+
+  cli
+    .command("generate <type> <name>", "Scaffold commands, events, routes, or middleware")
+    .alias("g")
+    .option("-f, --force", "Overwrite existing file")
+    .action(async (type, name, options) => {
+      await runGenerate(type, name, options);
     });
 
   for (const plugin of plugins) {

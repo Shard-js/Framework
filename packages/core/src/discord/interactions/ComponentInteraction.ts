@@ -118,6 +118,13 @@ export class ComponentInteraction {
     this.replied = true;
   }
 
+  public async fetchReply(): Promise<DiscordMessage> {
+    return this.rest.get(
+      Endpoints.originalInteractionResponse(this.applicationId, this.token),
+      { auth: false }
+    );
+  }
+
   public async editReply(options: string | InteractionReplyOptions): Promise<any> {
     const payload = this.normalizeReplyOptions(options);
     const files = typeof options === "object" ? options.files : undefined;
