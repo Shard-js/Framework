@@ -7,7 +7,7 @@ import {
   loadConfig,
   normalizeIntents,
   validateDiscordToken,
-} from "@shardjs/core";
+} from "@shardjs-framework/core";
 
 export async function runDoctor(): Promise<void> {
   const rootDir = process.cwd();

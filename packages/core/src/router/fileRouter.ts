@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import colors from "picocolors";
-import type { ApiRouter } from "@shardjs/api";
+import type { ApiRouter } from "@shardjs-framework/api";
 import { importModule } from "../utils/moduleLoader.js";
 import { ApplicationCommandType } from "../discord/types/interactions.js";
 import { resolveCommandType } from "../deploy/deployCommands.js";

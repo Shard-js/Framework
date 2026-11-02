@@ -25,7 +25,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@shardjs/cli": "workspace:*",
+    "@shardjs-framework/cli": "workspace:*",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {

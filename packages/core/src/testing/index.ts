@@ -6,7 +6,7 @@ import {
   type DiscordInteraction,
 } from "../discord/types/interactions.js";
 import { Client, type ClientOptions } from "../discord/client/Client.js";
-import type { RouteHandlerContext } from "@shardjs/api";
+import type { RouteHandlerContext } from "@shardjs-framework/api";
 
 export interface MockInteractionOptions {
   id?: string;

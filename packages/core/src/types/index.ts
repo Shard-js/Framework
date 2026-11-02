@@ -1,5 +1,5 @@
 import type { ZodSchema } from "zod";
-import type { ApiServerConfig, RouteHandler } from "@shardjs/api";
+import type { ApiServerConfig, RouteHandler } from "@shardjs-framework/api";
 import type { Client, ClientOptions } from "../discord/client/Client.js";
 import type {
   CommandInteraction,
@@ -181,7 +181,7 @@ export interface ShardConfig {
   onCommandError?: (error: Error, ctx: CommandContext) => Promise<any> | any;
 }
 
-export type { RouteHandler } from "@shardjs/api";
+export type { RouteHandler } from "@shardjs-framework/api";
 export type { Client, ClientOptions } from "../discord/client/Client.js";
 export type { Logger, LogLevel, LogFormat, LogEntry, LoggerOptions } from "../logging/index.js";
 export type { MetricsCollector, MetricsSnapshot, MetricsCollectorOptions } from "../metrics/index.js";

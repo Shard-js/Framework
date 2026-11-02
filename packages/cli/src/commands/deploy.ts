@@ -1,5 +1,5 @@
 import colors from "picocolors";
-import { FileRouter, loadConfig, deployCommands } from "@shardjs/core";
+import { FileRouter, loadConfig, deployCommands } from "@shardjs-framework/core";
 
 export interface DeployCliOptions {
   guild?: string;

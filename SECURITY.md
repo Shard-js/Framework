@@ -17,7 +17,7 @@ If you discover a security vulnerability in Shard.js, please report it responsib
 2. Send an email to `security@shardjs.dev` (or the maintainer email specified in `package.json`).
 3. Include the following details in your report:
    - Description of the vulnerability and attack vector.
-   - Affected package(s) (`@shardjs/core`, `@shardjs/api`, `@shardjs/cli`, `@shardjs/plugin-drizzle`, `create-shard`).
+   - Affected package(s) (`@shardjs-framework/core`, `@shardjs-framework/api`, `@shardjs-framework/cli`, `@shardjs-framework/plugin-drizzle`, `create-shard`).
    - A minimal reproduction script or curl command demonstrating the issue.
    - Potential impact and severity assessment.
 

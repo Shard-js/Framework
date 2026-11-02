@@ -1,4 +1,4 @@
-import { defineMiddleware, PermissionFlagsBits } from "@shardjs/core";
+import { defineMiddleware, PermissionFlagsBits } from "@shardjs-framework/core";
 
 export default defineMiddleware({
   name: "auth",

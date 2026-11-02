@@ -1,5 +1,5 @@
-import { defineConfig, GatewayIntentBits } from "@shardjs/core";
-import { drizzlePlugin } from "@shardjs/plugin-drizzle";
+import { defineConfig, GatewayIntentBits } from "@shardjs-framework/core";
+import { drizzlePlugin } from "@shardjs-framework/plugin-drizzle";
 import { z } from "zod";
 
 export default defineConfig({

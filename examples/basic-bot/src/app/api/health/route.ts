@@ -1,4 +1,4 @@
-import { defineRoute } from "@shardjs/core";
+import { defineRoute } from "@shardjs-framework/core";
 
 export const GET = defineRoute(async ({ bot }) => {
   return Response.json({

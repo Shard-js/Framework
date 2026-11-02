@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import esbuild from "esbuild";
 import colors from "picocolors";
-import { FileRouter, loadConfig } from "@shardjs/core";
+import { FileRouter, loadConfig } from "@shardjs-framework/core";
 
 export interface BuildOptions {
   outDir?: string;
@@ -62,7 +62,7 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
     });
   }
 
-  const prodRunnerContent = `import { createBot } from "@shardjs/core";
+  const prodRunnerContent = `import { createBot } from "@shardjs-framework/core";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
@@ -77,7 +77,7 @@ if (fs.existsSync(compiledConfigPath)) {
   const mod = await import(pathToFileURL(compiledConfigPath).href);
   config = mod.default || mod;
 } else {
-  const { loadConfig } = await import("@shardjs/core");
+  const { loadConfig } = await import("@shardjs-framework/core");
   const loaded = await loadConfig(rootDir);
   config = loaded.config;
 }

@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 import colors from "picocolors";
-import type { ShardPlugin } from "@shardjs/core";
+import type { ShardPlugin } from "@shardjs-framework/core";
 
-declare module "@shardjs/core" {
+declare module "@shardjs-framework/core" {
   interface ShardContext {
     db?: any;
   }

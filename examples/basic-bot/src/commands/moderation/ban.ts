@@ -4,7 +4,7 @@ import {
   PermissionFlagsBits,
   cooldown,
   requireGuild,
-} from "@shardjs/core";
+} from "@shardjs-framework/core";
 
 export default defineCommand({
   data: new SlashCommandBuilder()

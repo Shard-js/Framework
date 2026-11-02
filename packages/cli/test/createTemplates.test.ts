@@ -31,8 +31,8 @@ describe("P3.14: create-shard project templates", () => {
 
     const pkg = JSON.parse(fs.readFileSync(path.join(projectDir, "package.json"), "utf-8"));
     expect(pkg.name).toBe("bot-minimal");
-    expect(pkg.dependencies["@shardjs/core"]).toBeDefined();
-    expect(pkg.dependencies["@shardjs/plugin-drizzle"]).toBeUndefined();
+    expect(pkg.dependencies["@shardjs-framework/core"]).toBeDefined();
+    expect(pkg.dependencies["@shardjs-framework/plugin-drizzle"]).toBeUndefined();
   });
 
   it("scaffolds the 'api-drizzle' template", async () => {
@@ -47,7 +47,7 @@ describe("P3.14: create-shard project templates", () => {
 
     const pkg = JSON.parse(fs.readFileSync(path.join(projectDir, "package.json"), "utf-8"));
     expect(pkg.name).toBe("bot-fullstack");
-    expect(pkg.dependencies["@shardjs/plugin-drizzle"]).toBeDefined();
+    expect(pkg.dependencies["@shardjs-framework/plugin-drizzle"]).toBeDefined();
     expect(pkg.dependencies["drizzle-orm"]).toBeDefined();
   });
 

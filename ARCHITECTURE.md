@@ -11,11 +11,11 @@ Shard.js is organized as a Turborepo monorepo powered by `pnpm`:
 ```
 shard-framework/
 ├── packages/
-│   ├── core/              # @shardjs/core: Discord protocol engine, file router, bot runtime
-│   ├── api/               # @shardjs/api: Standalone HTTP server & dynamic route handler
-│   ├── cli/               # @shardjs/cli: CLI tool (`shard dev`, `build`, `deploy`, `doctor`)
+│   ├── core/              # @shardjs-framework/core: Discord protocol engine, file router, bot runtime
+│   ├── api/               # @shardjs-framework/api: Standalone HTTP server & dynamic route handler
+│   ├── cli/               # @shardjs-framework/cli: CLI tool (`shard dev`, `build`, `deploy`, `doctor`)
 │   ├── create-shard/      # create-shard: Interactive project scaffolding CLI
-│   └── plugin-drizzle/    # @shardjs/plugin-drizzle: Official Drizzle ORM plugin
+│   └── plugin-drizzle/    # @shardjs-framework/plugin-drizzle: Official Drizzle ORM plugin
 ├── examples/
 │   └── basic-bot/         # Production-ready reference bot with commands, events, and API
 ├── turbo.json             # Turborepo task graph
@@ -24,7 +24,7 @@ shard-framework/
 
 ---
 
-## 2. Discord Protocol Engine (`@shardjs/core`)
+## 2. Discord Protocol Engine (`@shardjs-framework/core`)
 
 The engine implements Discord API v10 specifications natively using standard Node.js built-ins (`node:http`, `node:crypto`, `node:zlib`, global `fetch`) and a lightweight, pinned WebSocket layer (`ws@8.18.0` encapsulated behind `IWebSocket`).
 
@@ -120,7 +120,7 @@ Provides a fluent, chainable API for crafting Discord objects with zero external
 
 ---
 
-## 3. Routing & Runtime (`@shardjs/core`)
+## 3. Routing & Runtime (`@shardjs-framework/core`)
 
 ### 3.1 File-Based Routing (`FileRouter`)
 
@@ -146,7 +146,7 @@ In development mode (`shard dev`):
 
 ---
 
-## 4. Built-in Web REST API (`@shardjs/api`)
+## 4. Built-in Web REST API (`@shardjs-framework/api`)
 
 - Next.js-style file-based route handlers (`src/app/api/**/route.ts`).
 - Operates on Web Standard `Request` and `Response` objects.

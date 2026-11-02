@@ -1,7 +1,7 @@
 import path from "node:path";
 import chokidar from "chokidar";
 import colors from "picocolors";
-import { loadConfig, createBot } from "@shardjs/core";
+import { loadConfig, createBot } from "@shardjs-framework/core";
 
 export interface DevCommandOptions {
   port?: number;

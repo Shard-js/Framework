@@ -1,4 +1,4 @@
-import { definePlugin } from "@shardjs/core";
+import { definePlugin } from "@shardjs-framework/core";
 
 export default definePlugin({
   name: "local-database",

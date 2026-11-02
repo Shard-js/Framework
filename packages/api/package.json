@@ -1,5 +1,5 @@
 {
-  "name": "@shardjs/api",
+  "name": "@shardjs-framework/api",
   "version": "0.2.0",
   "description": "Next.js-like built-in HTTP Route Handler engine for shard Discord bot framework",
   "type": "module",

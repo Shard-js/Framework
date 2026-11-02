@@ -103,8 +103,8 @@ function scaffoldMinimal(targetDir: string, name: string): void {
       doctor: "shard doctor",
     },
     dependencies: {
-      "@shardjs/core": "^0.2.0",
-      "@shardjs/cli": "^0.2.0",
+      "@shardjs-framework/core": "^0.2.0",
+      "@shardjs-framework/cli": "^0.2.0",
       "zod": "^3.24.2",
     },
     devDependencies: {
@@ -117,7 +117,7 @@ function scaffoldMinimal(targetDir: string, name: string): void {
     JSON.stringify(pkgJson, null, 2)
   );
 
-  const shardConfig = `import { defineConfig, GatewayIntentBits } from "@shardjs/core";
+  const shardConfig = `import { defineConfig, GatewayIntentBits } from "@shardjs-framework/core";
 
 export default defineConfig({
   token: process.env.DISCORD_TOKEN,
@@ -129,7 +129,7 @@ export default defineConfig({
 `;
   fs.writeFileSync(path.join(targetDir, "shard.config.ts"), shardConfig);
 
-  const pingCommand = `import { defineCommand } from "@shardjs/core";
+  const pingCommand = `import { defineCommand } from "@shardjs-framework/core";
 
 export default defineCommand({
   name: "ping",
@@ -143,7 +143,7 @@ export default defineCommand({
 `;
   fs.writeFileSync(path.join(targetDir, "src/commands/ping.ts"), pingCommand);
 
-  const readyEvent = `import { defineEvent } from "@shardjs/core";
+  const readyEvent = `import { defineEvent } from "@shardjs-framework/core";
 
 export default defineEvent({
   event: "ready",
@@ -175,9 +175,9 @@ function scaffoldApiDrizzle(targetDir: string, name: string): void {
       doctor: "shard doctor",
     },
     dependencies: {
-      "@shardjs/core": "^0.2.0",
-      "@shardjs/cli": "^0.2.0",
-      "@shardjs/plugin-drizzle": "^0.2.0",
+      "@shardjs-framework/core": "^0.2.0",
+      "@shardjs-framework/cli": "^0.2.0",
+      "@shardjs-framework/plugin-drizzle": "^0.2.0",
       "drizzle-orm": "^0.39.3",
       "better-sqlite3": "^11.8.1",
       "zod": "^3.24.2",
@@ -212,8 +212,8 @@ export const db = drizzle(sqlite, { schema });
 `;
   fs.writeFileSync(path.join(targetDir, "src/db/index.ts"), dbInit);
 
-  const shardConfig = `import { defineConfig, GatewayIntentBits } from "@shardjs/core";
-import { drizzlePlugin } from "@shardjs/plugin-drizzle";
+  const shardConfig = `import { defineConfig, GatewayIntentBits } from "@shardjs-framework/core";
+import { drizzlePlugin } from "@shardjs-framework/plugin-drizzle";
 import { db } from "./src/db/index.js";
 
 export default defineConfig({
@@ -233,7 +233,7 @@ export default defineConfig({
 `;
   fs.writeFileSync(path.join(targetDir, "shard.config.ts"), shardConfig);
 
-  const pingCommand = `import { defineCommand } from "@shardjs/core";
+  const pingCommand = `import { defineCommand } from "@shardjs-framework/core";
 
 export default defineCommand({
   name: "ping",
@@ -247,7 +247,7 @@ export default defineCommand({
 `;
   fs.writeFileSync(path.join(targetDir, "src/commands/ping.ts"), pingCommand);
 
-  const healthRoute = `import { defineRoute } from "@shardjs/core";
+  const healthRoute = `import { defineRoute } from "@shardjs-framework/core";
 
 export const GET = defineRoute(async ({ bot, db }) => {
   return Response.json({
@@ -261,7 +261,7 @@ export const GET = defineRoute(async ({ bot, db }) => {
 `;
   fs.writeFileSync(path.join(targetDir, "src/app/api/health/route.ts"), healthRoute);
 
-  const readyEvent = `import { defineEvent } from "@shardjs/core";
+  const readyEvent = `import { defineEvent } from "@shardjs-framework/core";
 
 export default defineEvent({
   event: "ready",
@@ -291,8 +291,8 @@ function scaffoldModeration(targetDir: string, name: string): void {
       doctor: "shard doctor",
     },
     dependencies: {
-      "@shardjs/core": "^0.2.0",
-      "@shardjs/cli": "^0.2.0",
+      "@shardjs-framework/core": "^0.2.0",
+      "@shardjs-framework/cli": "^0.2.0",
       "zod": "^3.24.2",
     },
     devDependencies: {
@@ -305,7 +305,7 @@ function scaffoldModeration(targetDir: string, name: string): void {
     JSON.stringify(pkgJson, null, 2)
   );
 
-  const shardConfig = `import { defineConfig, GatewayIntentBits } from "@shardjs/core";
+  const shardConfig = `import { defineConfig, GatewayIntentBits } from "@shardjs-framework/core";
 
 export default defineConfig({
   token: process.env.DISCORD_TOKEN,
@@ -318,7 +318,7 @@ export default defineConfig({
 `;
   fs.writeFileSync(path.join(targetDir, "shard.config.ts"), shardConfig);
 
-  const moderationMiddleware = `import { defineMiddleware } from "@shardjs/core";
+  const moderationMiddleware = `import { defineMiddleware } from "@shardjs-framework/core";
 
 export default defineMiddleware(async (ctx, next) => {
   if (!ctx.interaction.inGuild()) {
@@ -336,7 +336,7 @@ export default defineMiddleware(async (ctx, next) => {
     moderationMiddleware
   );
 
-  const banCommand = `import { defineCommand, PermissionFlagsBits } from "@shardjs/core";
+  const banCommand = `import { defineCommand, PermissionFlagsBits } from "@shardjs-framework/core";
 
 export default defineCommand({
   name: "ban",
@@ -371,7 +371,7 @@ export default defineCommand({
     banCommand
   );
 
-  const kickCommand = `import { defineCommand, PermissionFlagsBits } from "@shardjs/core";
+  const kickCommand = `import { defineCommand, PermissionFlagsBits } from "@shardjs-framework/core";
 
 export default defineCommand({
   name: "kick",
@@ -406,7 +406,7 @@ export default defineCommand({
     kickCommand
   );
 
-  const warnCommand = `import { defineCommand, PermissionFlagsBits } from "@shardjs/core";
+  const warnCommand = `import { defineCommand, PermissionFlagsBits } from "@shardjs-framework/core";
 
 export default defineCommand({
   name: "warn",
@@ -438,7 +438,7 @@ export default defineCommand({
 `;
   fs.writeFileSync(path.join(targetDir, "src/commands/warn.ts"), warnCommand);
 
-  const guildCreateEvent = `import { defineEvent } from "@shardjs/core";
+  const guildCreateEvent = `import { defineEvent } from "@shardjs-framework/core";
 
 export default defineEvent({
   event: "guildCreate",
@@ -452,7 +452,7 @@ export default defineEvent({
     guildCreateEvent
   );
 
-  const readyEvent = `import { defineEvent } from "@shardjs/core";
+  const readyEvent = `import { defineEvent } from "@shardjs-framework/core";
 
 export default defineEvent({
   event: "ready",

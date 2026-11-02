@@ -15,6 +15,6 @@ export * from "./discord/index.js";
 export * from "./logging/index.js";
 export * from "./metrics/index.js";
 
-export { defineRoute } from "@shardjs/api";
+export { defineRoute } from "@shardjs-framework/api";
 export * from "./testing/index.js";
 export * from "./i18n/index.js";

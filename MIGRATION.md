@@ -13,7 +13,7 @@ This guide helps you migrate an existing Discord bot from `discord.js` (or an ea
 | **Development** | Full process restart on code change | **Zero-Gateway-Drop HMR** (Gateway stays connected) |
 | **Web Server** | Needs external Express / Fastify / Koa | **Built-in Web API** (`src/app/api/**/route.ts`) |
 | **Middlewares** | Custom wrappers or middleware libs | **Built-in Onion Middleware** (`defineMiddleware`) |
-| **Builders** | `@discordjs/builders` | Exported directly from `@shardjs/core` |
+| **Builders** | `@discordjs/builders` | Exported directly from `@shardjs-framework/core` |
 | **CLI & Docker** | Manual build and Dockerfile scripts | Built-in `shard dev`, `build`, `deploy`, `docker:build` |
 
 ---
@@ -27,8 +27,8 @@ Remove `discord.js`, `@discordjs/builders`, `@discordjs/rest`, and `discord-api-
 pnpm remove discord.js @discordjs/builders @discordjs/rest @discordjs/formatters discord-api-types
 
 # Install Shard.js packages
-pnpm add @shardjs/core @shardjs/api
-pnpm add -D @shardjs/cli
+pnpm add @shardjs-framework/core @shardjs-framework/api
+pnpm add -D @shardjs-framework/cli
 ```
 
 ---
@@ -50,7 +50,7 @@ client.login(process.env.DISCORD_TOKEN);
 
 ### After (Shard.js):
 ```ts
-import { defineConfig, GatewayIntentBits } from "@shardjs/core";
+import { defineConfig, GatewayIntentBits } from "@shardjs-framework/core";
 
 export default defineConfig({
   token: process.env.DISCORD_TOKEN,
@@ -91,7 +91,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 ### After (Shard.js):
 ```ts
-import { defineCommand } from "@shardjs/core";
+import { defineCommand } from "@shardjs-framework/core";
 
 export default defineCommand({
   name: "ban",
@@ -122,8 +122,8 @@ Shard.js includes lightweight, fluent builders that mirror standard builder sema
 ### Embeds
 
 ```ts
-// Import from @shardjs/core instead of discord.js / @discordjs/builders
-import { EmbedBuilder } from "@shardjs/core";
+// Import from @shardjs-framework/core instead of discord.js / @discordjs/builders
+import { EmbedBuilder } from "@shardjs-framework/core";
 
 const embed = new EmbedBuilder()
   .setTitle("Audit Log")
@@ -139,7 +139,7 @@ const embed = new EmbedBuilder()
 ### Components (Buttons & Action Rows)
 
 ```ts
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "@shardjs/core";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "@shardjs-framework/core";
 
 const row = new ActionRowBuilder().addComponents(
   new ButtonBuilder()
@@ -166,7 +166,7 @@ Move your event listeners into `src/events/*.ts`.
 
 ### Ready Event (`src/events/ready.ts`):
 ```ts
-import { defineEvent } from "@shardjs/core";
+import { defineEvent } from "@shardjs-framework/core";
 
 export default defineEvent({
   event: "ready",
@@ -179,7 +179,7 @@ export default defineEvent({
 
 ### Message Create Event (`src/events/messageCreate.ts`):
 ```ts
-import { defineEvent } from "@shardjs/core";
+import { defineEvent } from "@shardjs-framework/core";
 
 export default defineEvent({
   event: "messageCreate",
@@ -197,10 +197,10 @@ export default defineEvent({
 
 ## 6. Permissions
 
-Use `PermissionsBitField` and `PermissionFlags` from `@shardjs/core`:
+Use `PermissionsBitField` and `PermissionFlags` from `@shardjs-framework/core`:
 
 ```ts
-import { PermissionsBitField, PermissionFlags } from "@shardjs/core";
+import { PermissionsBitField, PermissionFlags } from "@shardjs-framework/core";
 
 // Check permissions
 const permissions = new PermissionsBitField(member.permissions);

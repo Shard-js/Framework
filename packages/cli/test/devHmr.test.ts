@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { FileRouter } from "@shardjs/core";
+import { FileRouter } from "@shardjs-framework/core";
 import path from "node:path";
 
 function norm(p: string): string {

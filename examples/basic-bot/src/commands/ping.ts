@@ -1,4 +1,4 @@
-import { defineCommand, SlashCommandBuilder, cooldown } from "@shardjs/core";
+import { defineCommand, SlashCommandBuilder, cooldown } from "@shardjs-framework/core";
 
 export default defineCommand({
   data: new SlashCommandBuilder()

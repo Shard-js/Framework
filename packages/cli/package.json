@@ -1,5 +1,5 @@
 {
-  "name": "@shardjs/cli",
+  "name": "@shardjs-framework/cli",
   "version": "0.2.0",
   "description": "Next.js-like CLI for the shard Discord bot framework",
   "type": "module",
@@ -26,8 +26,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@shardjs/api": "workspace:*",
-    "@shardjs/core": "workspace:*",
+    "@shardjs-framework/api": "workspace:*",
+    "@shardjs-framework/core": "workspace:*",
     "cac": "^6.7.14",
     "chokidar": "^4.0.3",
     "dotenv": "^16.4.7",

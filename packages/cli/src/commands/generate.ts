@@ -26,7 +26,7 @@ export function getTemplate(type: string, name: string): { filePath: string; con
     case "c":
       return {
         filePath: `src/commands/${normName}.ts`,
-        content: `import { defineCommand, SlashCommandBuilder } from "@shardjs/core";
+        content: `import { defineCommand, SlashCommandBuilder } from "@shardjs-framework/core";
 
 export default defineCommand({
   data: new SlashCommandBuilder()
@@ -46,7 +46,7 @@ export default defineCommand({
     case "e":
       return {
         filePath: `src/events/${name}.ts`,
-        content: `import { defineEvent } from "@shardjs/core";
+        content: `import { defineEvent } from "@shardjs-framework/core";
 
 export default defineEvent({
   event: "${name}",
@@ -61,7 +61,7 @@ export default defineEvent({
     case "r":
       return {
         filePath: `src/app/api/${normName}/route.ts`,
-        content: `import { defineRoute } from "@shardjs/core";
+        content: `import { defineRoute } from "@shardjs-framework/core";
 
 export const GET = defineRoute(async ({ request, url }) => {
   return Response.json({
@@ -84,7 +84,7 @@ export const POST = defineRoute(async ({ request }) => {
     case "m":
       return {
         filePath: `src/middleware/${normName}.ts`,
-        content: `import { defineMiddleware } from "@shardjs/core";
+        content: `import { defineMiddleware } from "@shardjs-framework/core";
 
 export default defineMiddleware({
   name: "${normName}",

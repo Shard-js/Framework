@@ -127,16 +127,16 @@ importers:
 
   examples/basic-bot:
     dependencies:
-      '@shardjs/api':
+      '@shardjs-framework/api':
         specifier: workspace:*
         version: link:../../packages/api
-      '@shardjs/cli':
+      '@shardjs-framework/cli':
         specifier: workspace:*
         version: link:../../packages/cli
-      '@shardjs/core':
+      '@shardjs-framework/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@shardjs/plugin-drizzle':
+      '@shardjs-framework/plugin-drizzle':
         specifier: workspace:*
         version: link:../../packages/plugin-drizzle
       zod:
@@ -161,10 +161,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@shardjs/api':
+      '@shardjs-framework/api':
         specifier: workspace:*
         version: link:../api
-      '@shardjs/core':
+      '@shardjs-framework/core':
         specifier: workspace:*
         version: link:../core
       cac:
@@ -198,7 +198,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@shardjs/api':
+      '@shardjs-framework/api':
         specifier: workspace:*
         version: link:../api
       dotenv:
@@ -232,7 +232,7 @@ importers:
 
   packages/create-shard:
     dependencies:
-      '@shardjs/cli':
+      '@shardjs-framework/cli':
         specifier: workspace:*
         version: link:../cli
       picocolors:
@@ -255,7 +255,7 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1
     devDependencies:
-      '@shardjs/core':
+      '@shardjs-framework/core':
         specifier: workspace:*
         version: link:../core
       '@types/node':

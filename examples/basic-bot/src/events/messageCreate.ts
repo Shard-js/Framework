@@ -1,4 +1,4 @@
-import { defineEvent } from "@shardjs/core";
+import { defineEvent } from "@shardjs-framework/core";
 
 export default defineEvent({
   event: "messageCreate",

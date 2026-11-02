@@ -1,4 +1,4 @@
-import { defineRoute } from "@shardjs/core";
+import { defineRoute } from "@shardjs-framework/core";
 import { timingSafeEqual } from "node:crypto";
 
 function isAuthorized(req: Request): boolean {

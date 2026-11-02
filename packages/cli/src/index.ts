@@ -1,6 +1,6 @@
 import { cac } from "cac";
 import colors from "picocolors";
-import { loadConfig } from "@shardjs/core";
+import { loadConfig } from "@shardjs-framework/core";
 import { runDev } from "./commands/dev.js";
 import { runBuild } from "./commands/build.js";
 import { runStart } from "./commands/start.js";

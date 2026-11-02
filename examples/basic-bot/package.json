@@ -12,10 +12,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@shardjs/api": "workspace:*",
-    "@shardjs/cli": "workspace:*",
-    "@shardjs/core": "workspace:*",
-    "@shardjs/plugin-drizzle": "workspace:*",
+    "@shardjs-framework/api": "workspace:*",
+    "@shardjs-framework/cli": "workspace:*",
+    "@shardjs-framework/core": "workspace:*",
+    "@shardjs-framework/plugin-drizzle": "workspace:*",
     "zod": "^3.24.2"
   }
 }

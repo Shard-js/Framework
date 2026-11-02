@@ -58,7 +58,7 @@ export async function runCreateShard(): Promise<void> {
       : "minimal";
 
   try {
-    const { runCreate } = await import("@shardjs/cli");
+    const { runCreate } = await import("@shardjs-framework/cli");
     await runCreate(targetName, { template });
   } catch (err: any) {
     console.error(

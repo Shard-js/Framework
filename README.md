@@ -22,11 +22,11 @@
 ```
 shard-framework/
 ├── packages/
-│   ├── core/            # @shardjs/core: Standalone Discord protocol engine & bot runtime
-│   ├── api/             # @shardjs/api: Built-in HTTP Route Handler web server
-│   ├── cli/             # @shardjs/cli: The `shard` command line tool
+│   ├── core/            # @shardjs-framework/core: Standalone Discord protocol engine & bot runtime
+│   ├── api/             # @shardjs-framework/api: Built-in HTTP Route Handler web server
+│   ├── cli/             # @shardjs-framework/cli: The `shard` command line tool
 │   ├── create-shard/    # create-shard: Interactive project scaffolding
-│   └── plugin-drizzle/  # @shardjs/plugin-drizzle: Official Drizzle ORM plugin
+│   └── plugin-drizzle/  # @shardjs-framework/plugin-drizzle: Official Drizzle ORM plugin
 ├── examples/
 │   └── basic-bot/       # Showcase bot with Slash Commands, Events, and API
 ├── turbo.json           # Turborepo task orchestration
@@ -54,7 +54,7 @@ Edit `shard.config.ts` and set your `DISCORD_TOKEN` in `.env`:
 
 ```ts
 // shard.config.ts
-import { defineConfig, GatewayIntentBits } from "@shardjs/core";
+import { defineConfig, GatewayIntentBits } from "@shardjs-framework/core";
 
 export default defineConfig({
   token: process.env.DISCORD_TOKEN,
@@ -114,7 +114,7 @@ src/
 ### 1. Slash Command (`src/commands/ping.ts`)
 
 ```ts
-import { defineCommand } from "@shardjs/core";
+import { defineCommand } from "@shardjs-framework/core";
 
 export default defineCommand({
   name: "ping",
@@ -130,7 +130,7 @@ export default defineCommand({
 ### 2. Gateway Event (`src/events/ready.ts`)
 
 ```ts
-import { defineEvent } from "@shardjs/core";
+import { defineEvent } from "@shardjs-framework/core";
 
 export default defineEvent({
   event: "ready",
@@ -144,7 +144,7 @@ export default defineEvent({
 ### 3. Web Route Handler (`src/app/api/guilds/[id]/route.ts`)
 
 ```ts
-import { defineRoute } from "@shardjs/core";
+import { defineRoute } from "@shardjs-framework/core";
 
 export const GET = defineRoute(async ({ params, bot }) => {
   const guild = bot.guilds.cache.get(params.id);
@@ -167,7 +167,7 @@ export const GET = defineRoute(async ({ params, bot }) => {
 Middlewares protect specific commands by name (`middleware: ["auth"]`) or apply globally. Use a fail-closed approach to ensure unauthenticated requests never slip through:
 
 ```ts
-import { defineMiddleware, PermissionsBitField, PermissionFlagsBits } from "@shardjs/core";
+import { defineMiddleware, PermissionsBitField, PermissionFlagsBits } from "@shardjs-framework/core";
 
 export default defineMiddleware({
   name: "auth",
@@ -195,7 +195,7 @@ export default defineMiddleware({
 ### 5. Modals & Text Inputs (`src/commands/feedback.ts`)
 
 ```ts
-import { defineCommand, ModalBuilder, TextInputBuilder, ActionRowBuilder } from "@shardjs/core";
+import { defineCommand, ModalBuilder, TextInputBuilder, ActionRowBuilder } from "@shardjs-framework/core";
 
 export default defineCommand({
   name: "feedback",
@@ -221,7 +221,7 @@ export default defineCommand({
 ### 6. Drizzle ORM Plugin
 
 ```ts
-import { drizzlePlugin } from "@shardjs/plugin-drizzle";
+import { drizzlePlugin } from "@shardjs-framework/plugin-drizzle";
 import { db } from "./db/client.js";
 
 export default defineConfig({
@@ -258,7 +258,7 @@ Shard.js provides high-level camelCase helper properties on interactions and cac
 | **Directory Middleware** | ✅ Cascade | ❌ Manual | `_middleware.ts` runs in order: Global -> Folder -> Command |
 | **File-based Routing** | ✅ Built-in | ❌ External loaders | Auto-discovers commands, events, components, modals, API |
 | **Hot Module Replacement (HMR)** | ✅ Zero-Gateway-Drop | ❌ Full restart | Reloads commands, events, routes without dropping Gateway connection |
-| **Built-in Web API** | ✅ Built-in (`@shardjs/api`) | ❌ Express/Fastify | Native Web Standard Request/Response, Next.js-style routes |
+| **Built-in Web API** | ✅ Built-in (`@shardjs-framework/api`) | ❌ Express/Fastify | Native Web Standard Request/Response, Next.js-style routes |
 | **Serverless Webhook Mode** | ✅ Built-in Ed25519 | ⚠️ Requires external | Handles Discord HTTP interactions directly via Webhooks |
 | **Test Mock Helpers** | ✅ Built-in | ❌ Community mocks | `createMockInteraction()`, `createMockClient()`, `createMockRouteContext()` |
 | **Voice / Audio** | ❌ None | ✅ `@discordjs/voice` | Shard.js does not provide native voice/audio streaming |

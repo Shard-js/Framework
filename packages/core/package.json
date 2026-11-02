@@ -1,5 +1,5 @@
 {
-  "name": "@shardjs/core",
+  "name": "@shardjs-framework/core",
   "version": "0.2.0",
   "description": "Core runtime, routing and client abstractions for the shard Discord bot framework",
   "type": "module",
@@ -23,7 +23,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@shardjs/api": "workspace:*",
+    "@shardjs-framework/api": "workspace:*",
     "dotenv": "^16.4.7",
     "esbuild": "^0.25.0",
     "picocolors": "^1.1.1",

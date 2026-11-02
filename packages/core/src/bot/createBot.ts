@@ -1,5 +1,5 @@
 import colors from "picocolors";
-import { ApiServer } from "@shardjs/api";
+import { ApiServer } from "@shardjs-framework/api";
 import { Client } from "../discord/client/Client.js";
 import { normalizeIntents } from "../config/loadConfig.js";
 import { FileRouter } from "../router/fileRouter.js";

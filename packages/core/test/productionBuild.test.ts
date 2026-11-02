@@ -4,7 +4,7 @@ import path from "node:path";
 import os from "node:os";
 import { FileRouter } from "../src/router/fileRouter.js";
 import { createBot } from "../src/bot/createBot.js";
-import { ApiRouter } from "@shardjs/api";
+import { ApiRouter } from "@shardjs-framework/api";
 
 describe("Production Build and Docker Compatibility (P0 Issue #1)", () => {
   let tempDir: string;
