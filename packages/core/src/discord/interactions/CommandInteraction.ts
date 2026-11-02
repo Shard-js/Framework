@@ -26,6 +26,8 @@ export class CommandInteraction {
   public guildId?: string;
   public channelId?: string;
   public memberPermissions: PermissionsBitField;
+  public locale?: string;
+  public guildLocale?: string;
 
   public replied = false;
   public deferred = false;
@@ -45,6 +47,8 @@ export class CommandInteraction {
     this.member = interaction.member;
     this.guildId = interaction.guild_id;
     this.channelId = interaction.channel_id;
+    this.locale = interaction.locale;
+    this.guildLocale = interaction.guild_locale;
     this.memberPermissions = new PermissionsBitField(
       interaction.member?.permissions || interaction.app_permissions || 0n
     );

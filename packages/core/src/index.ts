@@ -17,3 +17,4 @@ export * from "./metrics/index.js";
 
 export { defineRoute } from "@shardjs/api";
 export * from "./testing/index.js";
+export * from "./i18n/index.js";

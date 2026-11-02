@@ -17,6 +17,9 @@ export class AutocompleteInteraction {
   public guildId?: string;
   public channelId?: string;
 
+  public locale?: string;
+  public guildLocale?: string;
+
   public responded = false;
   private rest: RestClient;
 
@@ -30,6 +33,8 @@ export class AutocompleteInteraction {
     this.member = interaction.member;
     this.guildId = interaction.guild_id;
     this.channelId = interaction.channel_id;
+    this.locale = interaction.locale;
+    this.guildLocale = interaction.guild_locale;
     this.rest = rest;
   }
 
@@ -70,14 +75,18 @@ export class AutocompleteInteraction {
     return findFocused(this.raw.data?.options || []);
   }
 
-  public async respond(choices: Array<{ name: string; value: string | number }>): Promise<void> {
+  public async respond(choices: Array<{ name: string; value: string | number } | string>): Promise<void> {
     if (this.responded) return;
+
+    const normalized = choices.map((c) =>
+      typeof c === "string" ? { name: c, value: c } : c
+    );
 
     await this.rest.post(Endpoints.interactionCallback(this.id, this.token), {
       body: {
         type: InteractionResponseType.ApplicationCommandAutocompleteResult,
         data: {
-          choices: choices.slice(0, 25), // Discord max 25 choices
+          choices: normalized.slice(0, 25), // Discord max 25 choices
         },
       },
       auth: false,
@@ -85,4 +94,23 @@ export class AutocompleteInteraction {
 
     this.responded = true;
   }
+}
+
+export function filterChoices<T extends { name: string; value: string | number } | string>(
+  query: string | number,
+  choices: T[],
+  limit = 25
+): Array<{ name: string; value: string | number }> {
+  const q = String(query).toLowerCase().trim();
+  const normalized: Array<{ name: string; value: string | number }> = choices.map((c) =>
+    typeof c === "string" ? { name: c, value: c } : (c as { name: string; value: string | number })
+  );
+
+  if (!q) {
+    return normalized.slice(0, limit);
+  }
+
+  return normalized
+    .filter((c) => c.name.toLowerCase().includes(q) || String(c.value).toLowerCase().includes(q))
+    .slice(0, limit);
 }
