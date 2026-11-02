@@ -22,7 +22,9 @@
     "test": "vitest run",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "changeset": "changeset"
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "turbo run build && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.12",
